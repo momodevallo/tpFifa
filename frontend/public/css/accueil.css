@@ -1,0 +1,210 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    color: white;
+}
+
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 2rem;
+    background: rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(10px);
+}
+
+.logo h1 {
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+
+.user-info {
+    display: flex;
+    gap: 2rem;
+    align-items: center;
+}
+
+.greeting {
+    font-size: 1.1rem;
+}
+
+.coins {
+    background: rgba(0, 0, 0, 0.4);
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: bold;
+    font-size: 1.1rem;
+}
+
+.coins .coin-icon {
+    width: 32px;
+    height: 32px;
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+
+.btn-logout {
+    background: #e74c3c;
+    color: white;
+    border: none;
+    padding: 0.7rem 1.5rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: 0.3s;
+}
+
+.btn-logout:hover {
+    background: #c0392b;
+    transform: scale(1.05);
+}
+
+.main-nav {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    padding: 1.5rem;
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.nav-btn {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    border: 2px solid transparent;
+    padding: 0.8rem 1.5rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: 0.3s;
+}
+
+.nav-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: white;
+}
+
+.nav-btn.active {
+    background: rgba(255, 255, 255, 0.3);
+    border-color: white;
+}
+
+.btn-play {
+    background: #27ae60;
+}
+
+.btn-play:hover {
+    background: #229954;
+}
+
+main {
+    padding: 2rem;
+    display: flex;
+    justify-content: center;
+}
+
+.terrain {
+    width: 100%;
+    max-width: 900px;
+    background-image: url("https://t3.ftcdn.net/jpg/07/05/94/28/360_F_705942809_Q1xSByMX9S12VoNIW57JBbtujrcm8rh1.jpg");
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+
+    border-radius: 15px;
+    padding: 2rem 1rem;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 2rem;
+}
+
+
+.ligne {
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+}
+
+.joueur {
+    position: relative;
+}
+
+.card {
+    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+    border-radius: 10px;
+    padding: 0.8rem;
+    width: 120px;
+    text-align: center;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+    cursor: pointer;
+    transition: transform 0.3s, box-shadow 0.3s;
+    position: relative;
+}
+
+.card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6);
+}
+
+.rating {
+    position: absolute;
+    top: 0.5rem;
+    left: 0.5rem;
+    background: rgba(255, 193, 7, 0.9);
+    color: #000;
+    font-weight: bold;
+    font-size: 1.1rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: 5px;
+}
+
+.card img {
+    width: 60px;
+    height: 60px;
+    margin: 0.5rem auto;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.nom {
+    font-weight: bold;
+    font-size: 0.95rem;
+    margin-top: 0.5rem;
+}
+
+.poste {
+    font-size: 0.8rem;
+    opacity: 0.8;
+    margin-top: 0.2rem;
+}
+
+@media (max-width: 768px) {
+    .terrain {
+        padding: 1rem 0.5rem;
+    }
+
+    .ligne {
+        gap: 0.5rem;
+    }
+
+    .card {
+        width: 80px;
+        padding: 0.5rem;
+    }
+
+    .card img {
+        width: 40px;
+        height: 40px;
+    }
+}

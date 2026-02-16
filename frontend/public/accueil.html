@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="css/accueil.css">
+    <link rel="icon" type="image/png" href="https://img.freepik.com/premium-photo/professional-football-logo-white-background_1027230-26683.jpg">
+    <title>Mon Équipe - FIFA TP</title>
+</head>
+<body>
+<!-- HEADER : infos utilisateur -->
+<header>
+    <div class="logo">
+        <h1>⚽ FIFA TP</h1>
+    </div>
+    <div class="user-info">
+        <span class="greeting">Salut <strong id="pseudo">Hamza</strong></span>
+        <div class="coins">
+            <img class="coin-icon"
+                 src="https://gmedia.playstation.com/is/image/SIEPDC/fifa-ultimate-team-coins-01-ps4-ps5-en-09sep21?$native--t$"
+                 alt="coins">
+            <span id="money">10000</span>
+        </div>
+
+    </div>
+    <button id="logout" class="btn-logout">Déconnexion</button>
+</header>
+
+<nav class="main-nav">
+    <button class="nav-btn active">Mon Équipe</button>
+    <button class="nav-btn" onclick="window.location.href='boutique.html'">Boutique</button>
+    <button class="nav-btn"onclick="window.location.href='marche.html'">Marché des Transferts</button>
+    <button class="nav-btn"onclick="window.location.href='composition.html'">Composition</button>
+    <button class="nav-btn btn-play">Jouer</button>
+</nav>
+
+<main>
+    <section class="terrain">
+        <div class="ligne attaque">
+            <div class="joueur">
+                <div class="card">
+                    <div class="rating">87</div>
+                    <img src="/player-image/16" alt="joueur">
+                    <div class="nom">Mbappé</div>
+                    <div class="poste">ATT</div>
+                </div>
+            </div>
+            <div class="joueur">
+                <div class="card">
+                    <div class="rating">91</div>
+                    <img src="/player-image/26" alt="joueur">
+                    <div class="nom">Haaland</div>
+                    <div class="poste">ATT</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="ligne milieu">
+            <div class="joueur">
+                <div class="card">
+                    <div class="rating">88</div>
+                    <img src="/player-image/36" alt="joueur">
+                    <div class="nom">De Bruyne</div>
+                    <div class="poste">MIL</div>
+                </div>
+            </div>
+            <div class="joueur">
+                <div class="card">
+                    <div class="rating">86</div>
+                    <img src="/player-image/66" alt="joueur">
+                    <div class="nom">Modrić</div>
+                    <div class="poste">MIL</div>
+                </div>
+            </div>
+            <div class="joueur">
+                <div class="card">
+                    <div class="rating">85</div>
+                    <img src="/player-image/699" alt="joueur">
+                    <div class="nom">Tchouaméni</div>
+                    <div class="poste">MIL</div>
+                </div>
+            </div>
+            <div class="joueur">
+                <div class="card">
+                    <div class="rating">87</div>
+                    <img src="/player-image/68" alt="joueur">
+                    <div class="nom">Bernardo</div>
+                    <div class="poste">MIL</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="ligne defense">
+            <div class="joueur">
+                <div class="card">
+                    <div class="rating">89</div>
+                    <img src="/player-image/6" alt="joueur">
+                    <div class="nom">Van Dijk</div>
+                    <div class="poste">DEF</div>
+                </div>
+            </div>
+            <div class="joueur">
+                <div class="card">
+                    <div class="rating">88</div>
+                    <img src="/player-image/65" alt="joueur">
+                    <div class="nom">Rüdiger</div>
+                    <div class="poste">DEF</div>
+                </div>
+            </div>
+            <div class="joueur">
+                <div class="card">
+                    <div class="rating">87</div>
+                    <img src="/player-image/64" alt="joueur">
+                    <div class="nom">Saliba</div>
+                    <div class="poste">DEF</div>
+                </div>
+            </div>
+            <div class="joueur">
+                <div class="card">
+                    <div class="rating">86</div>
+                    <img src="/player-image/61" alt="joueur">
+                    <div class="nom">Davies</div>
+                    <div class="poste">DEF</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="ligne gardien">
+            <div class="joueur">
+                <div class="card">
+                    <div class="rating">90</div>
+                    <img src="/player-image/8" alt="joueur">
+                    <div class="nom">Donnaruma</div>
+                    <div class="poste">GB</div>
+                </div>
+            </div>
+        </div>
+    </section>
+</main>
+
+<script src="js/accueil.js"></script>
+</body>
+</html>
