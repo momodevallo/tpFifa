@@ -5,6 +5,7 @@ import { fileURLToPath } from 'url';
 import createAuthRouter from './routes/authRoutes.js';
 import createHomeRouter from './routes/homeRoutes.js';
 import imageRouter from './routes/imageRoutes.js';
+import pool from "./config/db.js";
 
 dotenv.config();
 const PORT = process.env.PORT || 8000;
@@ -32,6 +33,16 @@ app.use('/', createHomeRouter(publicPath));
 app.use('/', imageRouter);
 
 app.use(express.static(publicPath));
+
+
+app.get("/health", async (req, res) => {
+    try {
+        await pool.query("SELECT 1");
+        res.json({ ok: true });
+    } catch (e) {
+        res.status(500).json({ ok: false, error: e.message });
+    }
+});
 
 app.listen(PORT, () => {
     console.log(`Serveur lancé sur http://localhost:${PORT}`);
