@@ -7,33 +7,9 @@
     <title>Boutique - FIFA TP</title>
 </head>
 <body>
-<!-- HEADER : même structure que accueil -->
-<header>
-    <div class="logo">
-        <h1>⚽ FIFA TP</h1>
-    </div>
-    <div class="user-info">
-        <span class="greeting">Salut <strong id="pseudo">Mohamed</strong></span>
-        <div class="coins">
-            <img class="coin-icon"
-                 src="https://gmedia.playstation.com/is/image/SIEPDC/fifa-ultimate-team-coins-01-ps4-ps5-en-09sep21?$native--t$"
-                 alt="coins">
-            <span id="money">10000</span>
-        </div>
-    </div>
-    <button id="logout" class="btn-logout">Déconnexion</button>
-</header>
+<div id="tp-header"></div>
+<script src="/js/header.js"></script>
 
-<!-- NAVIGATION -->
-<nav class="main-nav">
-    <button class="nav-btn" onclick="window.location.href='accueil.html'">Mon Équipe</button>
-    <button class="nav-btn active">Boutique</button>
-    <button class="nav-btn"onclick="window.location.href='marche.html'">Marché des Transferts</button>
-    <button class="nav-btn" onclick="window.location.href='composition.html'">Composition</button>
-    <button class="nav-btn btn-play">Jouer</button>
-</nav>
-
-<!-- MAIN : zone boutique -->
 <main>
     <section class="shop">
         <h2 class="shop-title">Packs</h2>

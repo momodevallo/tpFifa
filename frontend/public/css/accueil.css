@@ -208,3 +208,8 @@ main {
         height: 40px;
     }
 }
+.logo-img{
+    height: 48px;
+    width: auto;
+    display: block;
+}
