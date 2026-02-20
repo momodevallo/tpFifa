@@ -21,6 +21,9 @@ const publicPath = path.join(__dirname, '../..', 'frontend', 'public');
 
 const app = express();
 
+// utile si déploiement derrière un proxy (Apache/Nginx)
+app.set('trust proxy', 1);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -32,7 +35,8 @@ app.use(session({
     cookie: {
         httpOnly: true,
         sameSite: 'lax',
-        secure: process.env.NODE_ENV === 'production',
+        // IMPORTANT: si tu es en http (dev / proxy), secure:true empêche le cookie => plus de session
+        secure: false,
         maxAge: 1000 * 60 * 60 * 24
     }
 }));
@@ -47,7 +51,10 @@ app.use((req, res, next) => {
     const isAuth = req.path.startsWith('/auth/');
     const isPublic = req.path === '/index.html'; // optionnel
 
-    if (isHtml && !isAuth && !isPublic) {
+    // /accueil est une page (route) mais ne finit pas par .html
+    const isPageRoute = req.path === '/accueil';
+
+    if ((isHtml || isPageRoute) && !isAuth && !isPublic) {
         if (req.session?.user) return next();
         return res.redirect('/auth/login');
     }

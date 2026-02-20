@@ -1,8 +1,21 @@
-const userId = localStorage.getItem('userId');
-if (!userId) window.location.href = '/auth/login';
+let userId = localStorage.getItem('userId');
+
+async function ensureUserId() {
+    if (userId) return userId;
+    const meRes = await fetch('/auth/me', { credentials: 'include' });
+    if (!meRes.ok) {
+        window.location.href = '/auth/login';
+        return null;
+    }
+    const me = await meRes.json();
+    userId = me.userId;
+    localStorage.setItem('userId', me.userId);
+    localStorage.setItem('pseudo', me.pseudo);
+    return userId;
+}
 
 async function loadMarketListings() {
-    const res = await fetch('/api/marketplace/listings');
+    const res = await fetch('/api/marketplace/listings', { credentials: 'include' });
     const data = await res.json();
     
     const list = document.querySelector('.players-list');
@@ -34,9 +47,13 @@ async function loadMarketListings() {
 async function buyPlayer(annonceId, price) {
     if (!confirm(`Acheter pour ${price} crédits ?`)) return;
 
+    const ok = await ensureUserId();
+    if (!ok) return;
+
     const res = await fetch('/api/marketplace/buy', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ userId, annonceId })
     });
 

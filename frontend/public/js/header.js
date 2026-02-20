@@ -49,22 +49,48 @@
 
     const pseudo = localStorage.getItem("pseudo");
     const userId = localStorage.getItem("userId");
-    
-    if (pseudo) document.getElementById("pseudo").textContent = pseudo;
-    if (userId) {
-        fetch(`/api/cards/my-cards?userId=${userId}`)
-            .then(res => res.json())
-            .then(data => document.getElementById("money").textContent = data.credits);
-    }
+
+    // ✅ Auth fiable : on vérifie la session serveur à chaque chargement de page
+    fetch('/auth/me', { credentials: 'include' })
+        .then(async (res) => {
+            if (!res.ok) {
+                window.location.href = '/auth/login';
+                return null;
+            }
+            return res.json();
+        })
+        .then((me) => {
+            if (!me) return;
+
+            // on synchronise localStorage (utile si l'utilisateur a perdu le localStorage)
+            localStorage.setItem('userId', me.userId);
+            localStorage.setItem('pseudo', me.pseudo);
+
+            document.getElementById('pseudo').textContent = me.pseudo;
+            return fetch(`/api/cards/my-cards?userId=${me.userId}`, { credentials: 'include' });
+        })
+        .then((res) => (res ? res.json() : null))
+        .then((data) => {
+            if (data?.credits !== undefined) {
+                document.getElementById('money').textContent = data.credits;
+            }
+        })
+        .catch(() => {
+            window.location.href = '/auth/login';
+        });
 
     // Logout (simple)
     const logoutBtn = document.getElementById("logout");
     if (logoutBtn) {
         logoutBtn.addEventListener("click", () => {
-            localStorage.removeItem("pseudo");
-            localStorage.removeItem("money");
-            localStorage.removeItem("userId");
-            window.location.href = "/auth/login";
+            fetch('/auth/logout', { method: 'POST', credentials: 'include' })
+                .catch(() => {})
+                .finally(() => {
+                    localStorage.removeItem("pseudo");
+                    localStorage.removeItem("money");
+                    localStorage.removeItem("userId");
+                    window.location.href = "/auth/login";
+                });
         });
     }
 })();

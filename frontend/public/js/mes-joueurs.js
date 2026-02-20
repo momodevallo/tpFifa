@@ -1,8 +1,24 @@
-const userId = localStorage.getItem('userId');
-if (!userId) window.location.href = '/auth/login';
+let userId = localStorage.getItem('userId');
+
+async function ensureUserId() {
+    if (userId) return userId;
+    const meRes = await fetch('/auth/me', { credentials: 'include' });
+    if (!meRes.ok) {
+        window.location.href = '/auth/login';
+        return null;
+    }
+    const me = await meRes.json();
+    userId = me.userId;
+    localStorage.setItem('userId', me.userId);
+    localStorage.setItem('pseudo', me.pseudo);
+    return userId;
+}
 
 async function loadMyCards() {
-    const res = await fetch(`/api/cards/my-cards?userId=${userId}`);
+    const ok = await ensureUserId();
+    if (!ok) return;
+
+    const res = await fetch(`/api/cards/my-cards?userId=${userId}`, { credentials: 'include' });
     const data = await res.json();
     
     document.getElementById('money').textContent = data.credits;
@@ -27,9 +43,13 @@ async function sellCard(carteId) {
     const prix = prompt('Prix de vente ?');
     if (!prix || prix <= 0) return;
 
+    const ok = await ensureUserId();
+    if (!ok) return;
+
     const res = await fetch('/api/marketplace/sell', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ userId, carteId, prix: parseInt(prix) })
     });
 

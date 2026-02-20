@@ -55,3 +55,22 @@ export async function login(req, res) {
         });
     });
 }
+
+// Renvoie l'utilisateur connecté via la session (utile côté front pour vérifier l'auth)
+export async function me(req, res) {
+    if (req.session?.user) {
+        return res.status(200).json({
+            userId: req.session.user.id,
+            pseudo: req.session.user.pseudo
+        });
+    }
+    return res.status(401).json({ message: 'Non authentifié' });
+}
+
+// Déconnexion (détruit la session)
+export async function logout(req, res) {
+    req.session?.destroy(() => {
+        res.clearCookie('tpFifa.sid');
+        return res.status(200).json({ message: 'Déconnecté' });
+    });
+}
