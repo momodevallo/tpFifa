@@ -45,14 +45,10 @@ export async function login(req, res) {
         return res.status(400).json({ message: 'Identifiants invalides' });
     }
 
+  
     req.session.user = {
         id: user.id,
-        pseudo: user.pseudo
-    };
-
-    req.session.user = {
-        id: user.id,
-        pseudo: user.pseudo
+        username: user.username
     };
 
     return res.status(200).json({ message: 'Connexion réussie' });
