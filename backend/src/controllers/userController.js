@@ -36,21 +36,18 @@ export async function login(req, res) {
     }
 
     const user = await findUserByPseudo(pseudo);
-    if (!user) {
-        return res.status(400).json({ message: 'Identifiants invalides' });
-    }
+    if (!user) return res.status(400).json({ message: 'Identifiants invalides' });
 
     const ok = await bcrypt.compare(mdp, user.mdp);
-    if (!ok) {
-        return res.status(400).json({ message: 'Identifiants invalides' });
-    }
+    if (!ok) return res.status(400).json({ message: 'Identifiants invalides' });
 
-    return res.status(200).json({
-        message: 'Connexion réussie',
-        userId: user.id,
-        pseudo: user.pseudo
+    req.session.user = { id: user.id, pseudo: user.pseudo };
+
+    req.session.save(() => {
+        return res.status(200).json({
+            message: 'Connexion réussie',
+            userId: user.id,
+            pseudo: user.pseudo
+        });
     });
 }
-
-
-
