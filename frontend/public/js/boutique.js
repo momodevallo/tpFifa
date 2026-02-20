@@ -1,5 +1,8 @@
 const userId = localStorage.getItem('userId');
-if (!userId) window.location.href = '/auth/login';
+if (!userId) {
+    console.log('No userId found, redirecting to login');
+    window.location.href = '/auth/login';
+}
 
 document.querySelectorAll('.btn-buy').forEach(btn => {
     btn.addEventListener('click', async (e) => {
