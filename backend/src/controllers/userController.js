@@ -43,11 +43,9 @@ export async function login(req, res) {
 
     req.session.user = { id: user.id, pseudo: user.pseudo };
 
+    req.session.user = { id: user.id, pseudo: user.pseudo };
+
     req.session.save(() => {
-        return res.status(200).json({
-            message: 'Connexion réussie',
-            userId: user.id,
-            pseudo: user.pseudo
-        });
+        return res.status(200).json({ ok: true, pseudo: user.pseudo });
     });
 }
