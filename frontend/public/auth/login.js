@@ -27,7 +27,8 @@ form.addEventListener('submit', async (e) => {
             return;
         }
 
-
+        localStorage.setItem('userId', json.userId);
+        localStorage.setItem('pseudo', json.pseudo);
         window.location.href = '/accueil';
     } catch (err) {
         console.error(err);

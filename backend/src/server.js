@@ -7,6 +7,9 @@ import session from 'express-session';
 import createAuthRouter from './routes/authRoutes.js';
 import createHomeRouter from './routes/homeRoutes.js';
 import imageRouter from './routes/imageRoutes.js';
+import cartesRouter from './routes/cartesRoutes.js';
+import joueursRouter from './routes/joueursRoutes.js';
+import marketplaceRouter from './routes/marketplaceRoutes.js';
 import pool from "./config/db.js";
 
 dotenv.config();
@@ -54,6 +57,9 @@ app.use((req, res, next) => {
 app.use('/auth', createAuthRouter(publicPath));
 app.use('/', createHomeRouter(publicPath));
 app.use('/', imageRouter);
+app.use('/api/cards', cartesRouter);
+app.use('/api/packs', joueursRouter);
+app.use('/api/marketplace', marketplaceRouter);
 
 app.use(express.static(publicPath));
 

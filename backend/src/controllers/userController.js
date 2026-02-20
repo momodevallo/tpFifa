@@ -45,8 +45,11 @@ export async function login(req, res) {
         return res.status(400).json({ message: 'Identifiants invalides' });
     }
 
-    // Ici tu pourras plus tard créer une session / JWT
-    return res.status(200).json({ message: 'Connexion réussie' });
+    return res.status(200).json({
+        message: 'Connexion réussie',
+        userId: user.id,
+        pseudo: user.pseudo
+    });
 }
 
 

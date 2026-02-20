@@ -48,10 +48,14 @@
     if (activeBtn) activeBtn.classList.add("active");
 
     const pseudo = localStorage.getItem("pseudo");
+    const userId = localStorage.getItem("userId");
+    
     if (pseudo) document.getElementById("pseudo").textContent = pseudo;
-
-    const money = localStorage.getItem("money");
-    if (money) document.getElementById("money").textContent = money;
+    if (userId) {
+        fetch(`/api/cards/my-cards?userId=${userId}`)
+            .then(res => res.json())
+            .then(data => document.getElementById("money").textContent = data.credits);
+    }
 
     // Logout (simple)
     const logoutBtn = document.getElementById("logout");
@@ -59,6 +63,7 @@
         logoutBtn.addEventListener("click", () => {
             localStorage.removeItem("pseudo");
             localStorage.removeItem("money");
+            localStorage.removeItem("userId");
             window.location.href = "/auth/login";
         });
     }
