@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="../css/auth.css">
+    <link rel="icon" type="image/png" href="https://img.freepik.com/premium-photo/professional-football-logo-white-background_1027230-26683.jpg">
+    <title>Authentification</title>
+</head>
+<body>
+<header>
+    <h1>Connectez-vous pour jouer</h1>
+</header>
+
+<form id="login" action="/auth/login" method="post">
+    <input id="pseudo" name="pseudo" type="text" placeholder="Pseudo" required>
+    <input id="mdp" name="mdp" type="password" placeholder="Mot de passe" required>
+    <button id="submit" type="submit">Connexion</button>
+    <a href="/auth/register">Pas encore inscrit ? Appuyez ici</a>
+</form>
+
+<div id="error"></div>
+<div id="toast"></div>
+
+<script src="/auth/login.js"></script>
+</body>
+</html>

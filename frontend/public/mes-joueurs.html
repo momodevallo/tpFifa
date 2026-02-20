@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="css/mes-joueurs.css">
+    <link rel="icon" type="image/png" href="https://img.freepik.com/premium-photo/professional-football-logo-white-background_1027230-26683.jpg">
+    <title>Mes Joueurs - FIFA TP</title>
+</head>
+<body>
+<div id="tp-header"></div>
+<script src="/js/header.js"></script>
+
+<!-- MAIN -->
+<main>
+    <section class="club">
+        <div class="club-header">
+            <h2 class="club-title">🏆 Mes Joueurs</h2>
+            <div class="stats">
+                <span id="totalPlayers">24</span> joueurs dans ton club
+            </div>
+        </div>
+
+        <!-- Filtres -->
+        <div class="filters">
+            <input type="text" id="search" placeholder=" Rechercher un joueur..." class="search-input">
+            <select class="filter-select" id="filterPosition">
+                <option value="all">Tous les postes</option>
+                <option value="ATT">Attaquant</option>
+                <option value="MIL">Milieu</option>
+                <option value="DEF">Défenseur</option>
+                <option value="GB">Gardien</option>
+            </select>
+        </div>
+
+        <!-- Grille de joueurs -->
+        <div class="players-grid">
+
+            <!-- Joueur 1 -->
+            <div class="player-card" data-id="1" data-position="ATT">
+                <div class="rating">91</div>
+                <img src="/player-image/64" alt="Mbappé">
+                <div class="player-info">
+                    <span class="name">Kylian Mbappé</span>
+                    <span class="position">ATT</span>
+                    <span class="club">Real Madrid</span>
+                </div>
+                <button class="btn-sell" data-player-id="1">Vendre</button>
+            </div>
+
+            <!-- Joueur 2 -->
+            <div class="player-card" data-id="2" data-position="ATT">
+                <div class="rating">91</div>
+                <img src="/player-image/875" alt="Haaland">
+                <div class="player-info">
+                    <span class="name">Erling Haaland</span>
+                    <span class="position">ATT</span>
+                    <span class="club">Manchester City</span>
+                </div>
+                <button class="btn-sell" data-player-id="2">Vendre</button>
+            </div>
+
+            <!-- Joueur 3 -->
+            <div class="player-card" data-id="3" data-position="ATT">
+                <div class="rating">90</div>
+                <img src="/player-image/101" alt="Kane">
+                <div class="player-info">
+                    <span class="name">Harry Kane</span>
+                    <span class="position">ATT</span>
+                    <span class="club">Bayern Munich</span>
+                </div>
+                <button class="btn-sell" data-player-id="3">Vendre</button>
+            </div>
+
+            <!-- Joueur 4 -->
+            <div class="player-card" data-id="4" data-position="ATT">
+                <div class="rating">89</div>
+                <img src="/player-image/102" alt="Lewandowski">
+                <div class="player-info">
+                    <span class="name">Robert Lewandowski</span>
+                    <span class="position">ATT</span>
+                    <span class="club">FC Barcelone</span>
+                </div>
+                <button class="btn-sell" data-player-id="4">Vendre</button>
+            </div>
+
+            <!-- Joueur 5 -->
+            <div class="player-card" data-id="5" data-position="MIL">
+                <div class="rating">91</div>
+                <img src="/player-image/11" alt="De Bruyne">
+                <div class="player-info">
+                    <span class="name">Kevin De Bruyne</span>
+                    <span class="position">MIL</span>
+                    <span class="club">Manchester City</span>
+                </div>
+                <button class="btn-sell" data-player-id="5">Vendre</button>
+            </div>
+
+            <!-- Joueur 6 -->
+            <div class="player-card" data-id="6" data-position="MIL">
+                <div class="rating">90</div>
+                <img src="/player-image/6" alt="Bellingham">
+                <div class="player-info">
+                    <span class="name">Jude Bellingham</span>
+                    <span class="position">MIL</span>
+                    <span class="club">Real Madrid</span>
+                </div>
+                <button class="btn-sell" data-player-id="6">Vendre</button>
+            </div>
+
+            <!-- Joueur 7 -->
+            <div class="player-card" data-id="7" data-position="MIL">
+                <div class="rating">88</div>
+                <img src="/player-image/7" alt="Valverde">
+                <div class="player-info">
+                    <span class="name">Federico Valverde</span>
+                    <span class="position">MIL</span>
+                    <span class="club">Real Madrid</span>
+                </div>
+                <button class="btn-sell" data-player-id="7">Vendre</button>
+            </div>
+
+            <!-- Joueur 8 -->
+            <div class="player-card" data-id="8" data-position="MIL">
+                <div class="rating">88</div>
+                <img src="/player-image/8" alt="Kimmich">
+                <div class="player-info">
+                    <span class="name">Joshua Kimmich</span>
+                    <span class="position">MIL</span>
+                    <span class="club">Bayern Munich</span>
+                </div>
+                <button class="btn-sell" data-player-id="8">Vendre</button>
+            </div>
+
+            <!-- Joueur 9 -->
+            <div class="player-card" data-id="9" data-position="MIL">
+                <div class="rating">86</div>
+                <img src="/player-image/3498" alt="Modrić">
+                <div class="player-info">
+                    <span class="name">Luka Modrić</span>
+                    <span class="position">MIL</span>
+                    <span class="club">Real Madrid</span>
+                </div>
+                <button class="btn-sell" data-player-id="9">Vendre</button>
+            </div>
+
+            <!-- Joueur 10 -->
+            <div class="player-card" data-id="10" data-position="MIL">
+                <div class="rating">85</div>
+                <img src="/player-image/20" alt="Tchouaméni">
+                <div class="player-info">
+                    <span class="name">Aurélien Tchouaméni</span>
+                    <span class="position">MIL</span>
+                    <span class="club">Real Madrid</span>
+                </div>
+                <button class="btn-sell" data-player-id="10">Vendre</button>
+            </div>
+
+            <!-- Joueur 11 -->
+            <div class="player-card" data-id="11" data-position="MIL">
+                <div class="rating">87</div>
+                <img src="/player-image/4472" alt="Bernardo">
+                <div class="player-info">
+                    <span class="name">Bernardo Silva</span>
+                    <span class="position">MIL</span>
+                    <span class="club">Manchester City</span>
+                </div>
+                <button class="btn-sell" data-player-id="11">Vendre</button>
+            </div>
+
+            <!-- Joueur 12 -->
+            <div class="player-card" data-id="12" data-position="DEF">
+                <div class="rating">90</div>
+                <img src="/player-image/10000" alt="Van Dijk">
+                <div class="player-info">
+                    <span class="name">Virgil van Dijk</span>
+                    <span class="position">DEF</span>
+                    <span class="club">Liverpool</span>
+                </div>
+                <button class="btn-sell" data-player-id="12">Vendre</button>
+            </div>
+
+            <!-- Joueur 13 -->
+            <div class="player-card" data-id="13" data-position="DEF">
+                <div class="rating">88</div>
+                <img src="/player-image/187" alt="Rüdiger">
+                <div class="player-info">
+                    <span class="name">Antonio Rüdiger</span>
+                    <span class="position">DEF</span>
+                    <span class="club">Real Madrid</span>
+                </div>
+                <button class="btn-sell" data-player-id="13">Vendre</button>
+            </div>
+
+            <!-- Joueur 14 -->
+            <div class="player-card" data-id="14" data-position="DEF">
+                <div class="rating">87</div>
+                <img src="/player-image/45" alt="Saliba">
+                <div class="player-info">
+                    <span class="name">William Saliba</span>
+                    <span class="position">DEF</span>
+                    <span class="club">Arsenal</span>
+                </div>
+                <button class="btn-sell" data-player-id="14">Vendre</button>
+            </div>
+
+            <!-- Joueur 15 -->
+            <div class="player-card" data-id="15" data-position="DEF">
+                <div class="rating">86</div>
+                <img src="/player-image/95" alt="Davies">
+                <div class="player-info">
+                    <span class="name">Alphonso Davies</span>
+                    <span class="position">DEF</span>
+                    <span class="club">Bayern Munich</span>
+                </div>
+                <button class="btn-sell" data-player-id="15">Vendre</button>
+            </div>
+
+            <!-- Joueur 16 -->
+            <div class="player-card" data-id="16" data-position="DEF">
+                <div class="rating">86</div>
+                <img src="/player-image/110" alt="Hakimi">
+                <div class="player-info">
+                    <span class="name">Achraf Hakimi</span>
+                    <span class="position">DEF</span>
+                    <span class="club">PSG</span>
+                </div>
+                <button class="btn-sell" data-player-id="16">Vendre</button>
+            </div>
+
+            <!-- Joueur 17 -->
+            <div class="player-card" data-id="17" data-position="GB">
+                <div class="rating">90</div>
+                <img src="/player-image/38" alt="Alisson">
+                <div class="player-info">
+                    <span class="name">Alisson Becker</span>
+                    <span class="position">GB</span>
+                    <span class="club">Liverpool</span>
+                </div>
+                <button class="btn-sell" data-player-id="17">Vendre</button>
+            </div>
+
+            <!-- Joueur 18 -->
+            <div class="player-card" data-id="18" data-position="GB">
+                <div class="rating">89</div>
+                <img src="/player-image/348" alt="Courtois">
+                <div class="player-info">
+                    <span class="name">Thibaut Courtois</span>
+                    <span class="position">GB</span>
+                    <span class="club">Real Madrid</span>
+                </div>
+                <button class="btn-sell" data-player-id="18">Vendre</button>
+            </div>
+
+            <!-- Joueur 19 -->
+            <div class="player-card" data-id="19" data-position="ATT">
+                <div class="rating">88</div>
+                <img src="/player-image/501" alt="Rashford">
+                <div class="player-info">
+                    <span class="name">Marcus Rashford</span>
+                    <span class="position">ATT</span>
+                    <span class="club">Manchester United</span>
+                </div>
+                <button class="btn-sell" data-player-id="19">Vendre</button>
+            </div>
+
+            <!-- Joueur 20 -->
+            <div class="player-card" data-id="20" data-position="ATT">
+                <div class="rating">88</div>
+                <img src="/player-image/502" alt="Vinícius Jr">
+                <div class="player-info">
+                    <span class="name">Vinícius Júnior</span>
+                    <span class="position">ATT</span>
+                    <span class="club">Real Madrid</span>
+                </div>
+                <button class="btn-sell" data-player-id="20">Vendre</button>
+            </div>
+
+            <!-- Joueur 21 -->
+            <div class="player-card" data-id="21" data-position="MIL">
+                <div class="rating">87</div>
+                <img src="/player-image/503" alt="Pedri">
+                <div class="player-info">
+                    <span class="name">Pedri</span>
+                    <span class="position">MIL</span>
+                    <span class="club">FC Barcelone</span>
+                </div>
+                <button class="btn-sell" data-player-id="21">Vendre</button>
+            </div>
+
+            <!-- Joueur 22 -->
+            <div class="player-card" data-id="22" data-position="MIL">
+                <div class="rating">86</div>
+                <img src="/player-image/504" alt="Enzo">
+                <div class="player-info">
+                    <span class="name">Enzo Fernández</span>
+                    <span class="position">MIL</span>
+                    <span class="club">Chelsea</span>
+                </div>
+                <button class="btn-sell" data-player-id="22">Vendre</button>
+            </div>
+
+            <!-- Joueur 23 -->
+            <div class="player-card" data-id="23" data-position="DEF">
+                <div class="rating">86</div>
+                <img src="/player-image/505" alt="Koundé">
+                <div class="player-info">
+                    <span class="name">Jules Koundé</span>
+                    <span class="position">DEF</span>
+                    <span class="club">FC Barcelone</span>
+                </div>
+                <button class="btn-sell" data-player-id="23">Vendre</button>
+            </div>
+
+            <!-- Joueur 24 -->
+            <div class="player-card" data-id="24" data-position="GB">
+                <div class="rating">88</div>
+                <img src="/player-image/506" alt="Maignan">
+                <div class="player-info">
+                    <span class="name">Mike Maignan</span>
+                    <span class="position">GB</span>
+                    <span class="club">AC Milan</span>
+                </div>
+                <button class="btn-sell" data-player-id="24">Vendre</button>
+            </div>
+
+        </div>
+    </section>
+</main>
+
+<script src="/js/mes-joueurs.js"></script>
+</body>
+</html>

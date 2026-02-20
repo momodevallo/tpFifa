@@ -1,0 +1,337 @@
+/* RESET & BASE */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    color: white;
+}
+
+/* HEADER : même style */
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 2rem;
+    background: rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(10px);
+}
+
+.logo h1 {
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+
+.user-info {
+    display: flex;
+    gap: 2rem;
+    align-items: center;
+}
+
+.greeting {
+    font-size: 1.1rem;
+}
+
+.coins {
+    background: rgba(0, 0, 0, 0.4);
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: bold;
+    font-size: 1.1rem;
+}
+
+.coins .coin-icon {
+    width: 32px;
+    height: 32px;
+    object-fit: cover;
+}
+
+.btn-logout {
+    background: #e74c3c;
+    color: white;
+    border: none;
+    padding: 0.7rem 1.5rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: 0.3s;
+}
+
+.btn-logout:hover {
+    background: #c0392b;
+    transform: scale(1.05);
+}
+
+/* NAVIGATION */
+.main-nav {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    padding: 1.5rem;
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.nav-btn {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    border: 2px solid transparent;
+    padding: 0.8rem 1.5rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: 0.3s;
+}
+
+.nav-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: white;
+}
+
+.nav-btn.active {
+    background: rgba(255, 255, 255, 0.3);
+    border-color: white;
+}
+
+.btn-play {
+    background: #27ae60;
+}
+
+.btn-play:hover {
+    background: #229954;
+}
+
+/* MARCHÉ */
+main {
+    padding: 2rem;
+}
+
+.market {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* Header du marché */
+.market-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.market-title {
+    font-size: 2rem;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.btn-sell {
+    background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+    color: white;
+    border: none;
+    padding: 0.8rem 1.5rem;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.btn-sell:hover {
+    background: linear-gradient(135deg, #e67e22 0%, #f39c12 100%);
+    transform: scale(1.05);
+}
+
+/* Filtres */
+.filters {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.search-input, .filter-select {
+    padding: 0.8rem 1rem;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    font-size: 1rem;
+    backdrop-filter: blur(10px);
+    outline: none;
+    transition: 0.3s;
+}
+
+.search-input {
+    flex: 1;
+}
+
+.search-input:focus, .filter-select:focus {
+    border-color: white;
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.filter-select option {
+    background: #764ba2;
+    color: white;
+}
+
+/* Liste des joueurs */
+.players-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+/* Carte joueur (horizontale) */
+.player-card {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border-radius: 12px;
+    padding: 1rem;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.player-card:hover {
+    transform: translateX(10px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+    border-color: rgba(255, 255, 255, 0.4);
+}
+
+/* Image du joueur */
+.player-image {
+    position: relative;
+    flex-shrink: 0;
+}
+
+.player-image img {
+    width: 80px;
+    height: 80px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.1);
+    object-fit: cover;
+}
+
+.player-rating {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+    color: #000;
+    font-weight: bold;
+    font-size: 1rem;
+    padding: 0.3rem 0.6rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+/* Détails du joueur */
+.player-details {
+    flex: 1;
+}
+
+.player-name {
+    font-size: 1.3rem;
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+}
+
+.player-meta {
+    display: flex;
+    gap: 1rem;
+    font-size: 0.9rem;
+    opacity: 0.8;
+}
+
+.player-position {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 0.2rem 0.6rem;
+    border-radius: 5px;
+    font-weight: bold;
+}
+
+/* Actions (prix + bouton) */
+.player-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.8rem;
+}
+
+.player-price {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #ffd700;
+}
+
+.coin-small {
+    width: 28px;
+    height: 28px;
+    object-fit: cover;
+}
+
+.btn-buy-player {
+    background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
+    color: white;
+    border: none;
+    padding: 0.7rem 1.5rem;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.3s;
+    white-space: nowrap;
+}
+
+.btn-buy-player:hover {
+    background: linear-gradient(135deg, #229954 0%, #27ae60 100%);
+    transform: scale(1.05);
+}
+
+.btn-buy-player:active {
+    transform: scale(0.98);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .market-header {
+        flex-direction: column;
+        gap: 1rem;
+        align-items: flex-start;
+    }
+
+    .filters {
+        flex-direction: column;
+    }
+
+    .player-card {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .player-actions {
+        width: 100%;
+        align-items: center;
+    }
+
+    .btn-buy-player {
+        width: 100%;
+    }
+}
+
+.logo-img{
+    height: 48px;
+    width: auto;
+    display: block;
+}
