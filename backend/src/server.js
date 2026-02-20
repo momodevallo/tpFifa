@@ -2,6 +2,8 @@ import express from 'express';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import session from 'express-session';
+
 import createAuthRouter from './routes/authRoutes.js';
 import createHomeRouter from './routes/homeRoutes.js';
 import imageRouter from './routes/imageRoutes.js';
@@ -19,16 +21,37 @@ const publicPath = path.join(__dirname, '../..', 'frontend', 'public');
 
 const app = express();
 
-app.use((req, res, next) => {
-    console.log('REQUETE:', req.method, req.url);
-    next();
-});
-
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+app.use(session({
+    name: 'tpFifa.sid',
+    secret: process.env.SESSION_SECRET || 'dev-secret-change-me',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 1000 * 60 * 60 * 24
+    }
+}));
+
 app.get('/', (req, res) => {
-    res.sendFile(path.join(publicPath, 'auth', 'login.html'));
+    if (req.session?.user) return res.redirect('/accueil');
+    return res.sendFile(path.join(publicPath, 'auth', 'login.html'));
+});
+
+app.use((req, res, next) => {
+    const isHtml = req.path.endsWith('.html');
+    const isAuth = req.path.startsWith('/auth/');
+    const isPublic = req.path === '/index.html'; // optionnel
+
+    if (isHtml && !isAuth && !isPublic) {
+        if (req.session?.user) return next();
+        return res.redirect('/auth/login');
+    }
+    next();
 });
 
 app.use('/auth', createAuthRouter(publicPath));
@@ -39,7 +62,6 @@ app.use('/api/packs', joueursRouter);
 app.use('/api/marketplace', marketplaceRouter);
 
 app.use(express.static(publicPath));
-
 
 app.get("/health", async (req, res) => {
     try {
