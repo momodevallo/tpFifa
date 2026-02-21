@@ -1,37 +1,84 @@
-(async () => {
+async function recupererOuInitialiserUtilisateur() {
     let userId = localStorage.getItem('userId');
 
-    // Si on a perdu le localStorage, on récupère l'utilisateur via la session
     if (!userId) {
-        const meRes = await fetch('/auth/me', { credentials: 'include' });
-        if (!meRes.ok) {
+        const reponse = await fetch('/auth/me', { credentials: 'include' });
+
+        if (!reponse.ok) {
             window.location.href = '/auth/login';
-            return;
+            return null;
         }
-        const me = await meRes.json();
+
+        const me = await reponse.json();
         userId = me.userId;
+
         localStorage.setItem('userId', me.userId);
         localStorage.setItem('pseudo', me.pseudo);
     }
 
-    document.querySelectorAll('.btn-buy').forEach(btn => {
-        btn.addEventListener('click', async (e) => {
-            const packId = { bronze: 1, silver: 2, gold: 3 }[e.target.dataset.pack];
-            if (!confirm(`Acheter ce pack pour ${e.target.dataset.price} crédits ?`)) return;
+    return userId;
+}
 
-            const res = await fetch('/api/packs/open-pack', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({ userId, packId })
-            });
+async function ouvrirPack(userId, typePack, prix) {
+    const mappingPackId = {
+        bronze: 1,
+        silver: 2,
+        gold: 3
+    };
 
-            const data = await res.json();
-            if (!res.ok) return alert(data.message);
+    const packId = mappingPackId[typePack];
 
-            document.getElementById('money').textContent = data.credits;
-            alert(`Pack ouvert ! Vous avez reçu ${data.cards.length} joueurs.`);
-            location.reload();
+    if (!packId) {
+        throw new Error('Type de pack inconnu : ' + typePack);
+    }
+
+    const confirmation = confirm(`Acheter ce pack pour ${prix} crédits ?`);
+    if (!confirmation) {
+        return null;
+    }
+
+    const reponse = await fetch('/api/packs/open-pack', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ userId, packId })
+    });
+
+    const data = await reponse.json();
+
+    if (!reponse.ok) {
+        throw new Error(data.message || 'Erreur lors de l’ouverture du pack');
+    }
+    return data;
+}
+function mettreAJourAffichageApresPack(data) {
+    const moneyElement = document.getElementById('money');
+    if (moneyElement) {
+        moneyElement.textContent = data.credits;
+    }
+    alert(`Pack ouvert ! Tu as reçu ${data.cards.length} joueurs.`);
+}
+
+(async () => {
+    const userId = await recupererOuInitialiserUtilisateur();
+    if (!userId) return; // au cas où
+
+    const boutons = document.querySelectorAll('.btn-buy');
+
+    boutons.forEach(btn => {
+        btn.addEventListener('click', async (event) => {
+            const typePack = event.target.dataset.pack;
+            const prix = event.target.dataset.price;
+
+            try {
+                const data = await ouvrirPack(userId, typePack, prix);
+                if (!data) {
+                    return;
+                }
+                mettreAJourAffichageApresPack(data);
+            } catch (erreur) {
+                alert(erreur.message);
+            }
         });
     });
 })();
