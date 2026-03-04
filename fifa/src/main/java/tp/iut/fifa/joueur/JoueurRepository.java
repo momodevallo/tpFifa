@@ -6,5 +6,6 @@ import java.util.List;
 
 public interface JoueurRepository extends JpaRepository<Joueur, Long> {
     List<Joueur> findByQualiteIn(List<Qualite> qualites);
+    List<Joueur> findByQualite(Qualite qualite);
 
 }

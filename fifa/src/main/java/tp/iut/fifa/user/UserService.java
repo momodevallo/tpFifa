@@ -8,6 +8,8 @@ import tp.iut.fifa.joueur.Joueur;
 import tp.iut.fifa.joueur.JoueurRepository;
 import tp.iut.fifa.joueur.Poste;
 import tp.iut.fifa.joueur.Qualite;
+import tp.iut.fifa.wallet.Portefeuille;
+import tp.iut.fifa.wallet.PortefeuilleRepository;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -19,12 +21,14 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final JoueurRepository joueurRepository;
     private final CarteRepository carteRepository;
+    private final PortefeuilleRepository portefeuilleRepository;
 
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, JoueurRepository joueurRepository, CarteRepository carteRepository) {
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, JoueurRepository joueurRepository, CarteRepository carteRepository,PortefeuilleRepository portefeuilleRepository) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.joueurRepository = joueurRepository;
         this.carteRepository = carteRepository;
+        this.portefeuilleRepository = portefeuilleRepository;
     }
 
     private void creerEquipeDeBase(User user) {
@@ -100,8 +104,16 @@ public class UserService {
         User user = new User();
         user.setPseudo(pseudo);
         user.setMdp(hashedPassword);
+
         User saved = userRepository.save(user);
         creerEquipeDeBase(saved);
+
+        Portefeuille portefeuille = new Portefeuille();
+        portefeuille.setUtilisateurId(saved.getId());
+        portefeuille.setCredits(5000);
+        portefeuilleRepository.save(portefeuille);
+
         return saved;
     }
+
 }
