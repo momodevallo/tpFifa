@@ -1,5 +1,6 @@
 package tp.iut.fifa.user;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -15,6 +16,7 @@ public class User {
     private int id;
 
     private String pseudo;
+    @JsonIgnore
     private String mdp;
 
     public User() {

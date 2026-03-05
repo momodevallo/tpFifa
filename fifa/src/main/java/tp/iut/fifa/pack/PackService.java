@@ -44,7 +44,6 @@ public class PackService {
         for (int i = 0; i < pack.getNbCartes(); i++) {
             Qualite qualite = tirerDeLaQuali(pack);
             Joueur joueurTire = tirerJoueur(qualite);
-
             Carte carte = new Carte();
             carte.setUtilisateur(user);
             carte.setJoueur(joueurTire);
