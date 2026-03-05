@@ -1,6 +1,7 @@
 package tp.iut.fifa.pack;
 
 import org.springframework.stereotype.Service;
+import tp.iut.fifa.carte.Carte;
 import tp.iut.fifa.carte.CarteRepository;
 import tp.iut.fifa.joueur.Joueur;
 import tp.iut.fifa.joueur.JoueurRepository;
@@ -8,6 +9,8 @@ import tp.iut.fifa.joueur.Qualite;
 import tp.iut.fifa.user.User;
 import tp.iut.fifa.wallet.PortefeuilleRepository;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 
 @Service
@@ -26,25 +29,34 @@ public class PackService {
         this.joueurRepository = joueurRepository;
     }
 
-    public void ouvrirPack(TypePack pack, User user) {
+    public List<Carte> ouvrirPack(TypePack pack, User user) {
         var portefeuille = portefeuilleRepository.findByUtilisateurId(user.getId());
 
         if (portefeuille.getCredits() < pack.getPrix()) {
             throw new IllegalStateException("Vous n'avez pas assez de crédit pour ouvrir ce pack ! ");
         }
 
-        // débiter le prix du pack
         portefeuille.setCredits(portefeuille.getCredits() - pack.getPrix());
         portefeuilleRepository.save(portefeuille);
 
-        // TODO: tirer pack.getNbCartes() joueurs selon les pourcentages du pack
-        // TODO: pour chaque joueur tiré, créer une Carte:
-        // Carte c = new Carte();
-        // c.setUtilisateur(user);
-        // c.setJoueur(joueurTire);
-        // c.setNonEchangeable(false);
-        // carteRepository.save(c);
+        List<Carte> cartesObtenues = new ArrayList<>();
+
+        for (int i = 0; i < pack.getNbCartes(); i++) {
+            Qualite qualite = tirerDeLaQuali(pack);
+            Joueur joueurTire = tirerJoueur(qualite);
+
+            Carte carte = new Carte();
+            carte.setUtilisateur(user);
+            carte.setJoueur(joueurTire);
+            carte.setNonEchangeable(false);
+            carteRepository.save(carte);
+            cartesObtenues.add(carte);
+        }
+
+        return cartesObtenues;
     }
+
+
 
     private Qualite tirerDeLaQuali(TypePack pack) {
         int r = random.nextInt(100);
@@ -61,9 +73,12 @@ public class PackService {
         }
     }
 
-    private Joueur tirerJoueur(Qualite qualite){
-        carte.joueur;
+    private Joueur tirerJoueur(Qualite qualite) {
+        List<Joueur> candidats = joueurRepository.findByQualite(qualite);
+        int indexAleatoire = random.nextInt(candidats.size());
+        return candidats.get(indexAleatoire);
     }
+
 
 
 
