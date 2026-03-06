@@ -11,11 +11,11 @@
     <h1>Crée ton compte pour jouer</h1>
 </header>
 
-<form id="register" action="/auth/register" method="post">
+<form id="register" action="/api/inscription" method="post">
     <input id="pseudo" name="pseudo" type="text" placeholder="Pseudo" required>
     <input id="mdp" name="mdp" type="password" placeholder="Mot de passe" required>
     <button id="submit" type="submit">Créer un compte</button>
-    <a href="/">Déjà inscrit ? Connecte-toi</a>
+    <a href="/login">Déjà inscrit ? Connecte-toi</a>
 </form>
 
 <div id="error"></div>

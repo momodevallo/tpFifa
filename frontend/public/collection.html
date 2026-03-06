@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Collection - FIFA Project</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="container topbar-inner">
+      <a class="brand" href="/dashboard.html">
+        <div class="brand-badge">⚽</div>
+        <span>FIFA Ultimate Project</span>
+      </a>
+      <nav class="nav">
+        <a href="/dashboard.html">Accueil</a>
+        <a href="/collection.html">Collection</a>
+        <a href="/packs.html">Packs</a>
+        <a href="/marketplace.html">Marketplace</a>
+        <a href="/equipe.html">Équipe</a>
+      </nav>
+      <div class="userbox">
+        <div class="user-pill">👤 <span data-user-pseudo>...</span></div>
+        <div class="user-pill">💰 <span data-user-credits>...</span></div>
+        <button class="btn-ghost" onclick="logout()">Déconnexion</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="page">
+    <div class="container">
+      <section class="page-header">
+        <div>
+          <h1>Ma collection</h1>
+          <p class="muted">Toutes les cartes possédées par l'utilisateur connecté.</p>
+        </div>
+        <div class="actions">
+          <input id="searchInput" class="input" style="min-width:260px;" placeholder="Rechercher un joueur, un club ou une nation">
+          <select id="positionFilter" class="select">
+            <option value="">Tous les postes</option>
+            <option value="GB">GB</option>
+            <option value="DEF">DEF</option>
+            <option value="MIL">MIL</option>
+            <option value="ATT">ATT</option>
+          </select>
+        </div>
+      </section>
+
+      <div id="collectionMessage" class="info hidden"></div>
+      <section id="collectionGrid" class="player-grid"></section>
+    </div>
+  </main>
+
+  <script src="/js/app.js"></script>
+  <script>
+    setActiveNav();
+    let allCards = [];
+
+    function saveSaleDraft(carteId) {
+      localStorage.setItem('selectedCardId', String(carteId));
+      window.location.href = '/marketplace.html';
+    }
+
+    function renderCollection() {
+      const search = document.getElementById('searchInput').value.trim().toLowerCase();
+      const position = document.getElementById('positionFilter').value;
+
+      const filtered = allCards.filter(carte => {
+        const j = carte.joueur;
+        const haystack = `${j.nom} ${j.club || ''} ${j.nationalite || ''}`.toLowerCase();
+        const searchOk = !search || haystack.includes(search);
+        const positionOk = !position || j.poste === position;
+        return searchOk && positionOk;
+      });
+
+      const grid = document.getElementById('collectionGrid');
+      if (!filtered.length) {
+        grid.innerHTML = '<div class="card center muted">Aucune carte trouvée pour ce filtre.</div>';
+        return;
+      }
+
+      grid.innerHTML = filtered.map(carte => {
+        const sellButton = carte.nonEchangeable
+          ? ''
+          : `<button class="btn-secondary" onclick="saveSaleDraft(${carte.id})">Mettre en vente</button>`;
+        return renderPlayerCard(carte, sellButton);
+      }).join('');
+    }
+
+    (async () => {
+      await loadSessionInfo();
+      allCards = await apiFetch('/api/moi/cartes');
+      showMessage('#collectionMessage', 'info', `${allCards.length} carte(s) chargée(s).`);
+      renderCollection();
+
+      document.getElementById('searchInput').addEventListener('input', renderCollection);
+      document.getElementById('positionFilter').addEventListener('change', renderCollection);
+    })();
+  </script>
+</body>
+</html>

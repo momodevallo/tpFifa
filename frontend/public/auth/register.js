@@ -4,7 +4,6 @@ const toast = document.getElementById('toast');
 
 form.addEventListener('submit', async (e) => {
     e.preventDefault();
-
     errorDiv.textContent = '';
 
     const formData = new FormData(form);
@@ -14,25 +13,25 @@ form.addEventListener('submit', async (e) => {
     };
 
     try {
-        const res = await fetch('/auth/register', {
+        const res = await fetch('/api/inscription', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data),
         });
 
-        const json = await res.json();
+        const json = await res.json().catch(() => ({}));
 
         if (!res.ok) {
-            errorDiv.textContent = json.message || 'Erreur';
+            errorDiv.textContent = json.message || json.error || 'Erreur';
             return;
         }
 
-        showToast(json.message || 'Compte créé');
+        showToast('Compte créé');
         form.reset();
 
         setTimeout(() => {
-            window.location.href = '/';
-        }, 1500);
+            window.location.href = '/login';
+        }, 1200);
     } catch (err) {
         console.error(err);
         errorDiv.textContent = 'Erreur réseau, réessaie plus tard';

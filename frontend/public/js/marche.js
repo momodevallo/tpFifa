@@ -1,51 +1,89 @@
-const userId = localStorage.getItem('userId');
-if (!userId) window.location.href = '/auth/login';
+let currentUser = null;
 
 async function loadMarketListings() {
-    const res = await fetch('/api/marketplace/listings');
-    const data = await res.json();
-    
+    const [marketRes, meRes] = await Promise.all([
+        fetch('/api/marketplace', { credentials: 'same-origin' }),
+        fetch('/api/moi', { credentials: 'same-origin' })
+    ]);
+
+    if (!marketRes.ok || !meRes.ok) {
+        if (marketRes.status === 401 || meRes.status === 401) window.location.href = '/login';
+        return;
+    }
+
+    currentUser = await meRes.json();
+    const data = await marketRes.json();
+
     const list = document.querySelector('.players-list');
-    list.innerHTML = data.listings.map(l => `
+    list.innerHTML = data.map(l => {
+        const ownListing = currentUser && l.vendeurId === currentUser.id;
+        return `
         <div class="player-card">
             <div class="player-image">
-                <img src="/player-image/${l.joueur_id}" alt="${l.nom}">
-                <div class="player-rating">${l.note}</div>
+                <img src="${l.carte.joueur.imageUrl || ''}" alt="${l.carte.joueur.nom}">
+                <div class="player-rating">${l.carte.joueur.note}</div>
             </div>
             <div class="player-details">
-                <h3 class="player-name">${l.nom}</h3>
+                <h3 class="player-name">${l.carte.joueur.nom}</h3>
                 <div class="player-meta">
-                    <span class="player-position">${l.poste}</span>
-                    <span class="player-club">${l.club || ''}</span>
+                    <span class="player-position">${l.carte.joueur.poste}</span>
+                    <span class="player-club">${l.carte.joueur.club || ''}</span>
                 </div>
-                <div style="font-size: 0.9rem; color: #888;">Vendeur: ${l.vendeur_pseudo}</div>
+                <div style="font-size: 0.9rem; color: #888;">Vendeur: ${l.vendeurPseudo}</div>
             </div>
             <div class="player-actions">
                 <div class="player-price">
                     <img class="coin-small" src="https://gmedia.playstation.com/is/image/SIEPDC/fifa-ultimate-team-coins-01-ps4-ps5-en-09sep21?$native--t$" alt="coins">
                     <span>${l.prix}</span>
                 </div>
-                <button class="btn-buy-player" onclick="buyPlayer(${l.annonce_id}, ${l.prix})">Acheter</button>
+                ${ownListing
+                    ? `<button class="btn-buy-player" onclick="removeListing(${l.id})">Retirer</button>`
+                    : `<button class="btn-buy-player" onclick="buyPlayer(${l.id}, ${l.prix})">Acheter</button>`}
             </div>
-        </div>
-    `).join('');
+        </div>`;
+    }).join('');
 }
 
 async function buyPlayer(annonceId, price) {
     if (!confirm(`Acheter pour ${price} crédits ?`)) return;
 
-    const res = await fetch('/api/marketplace/buy', {
+    const res = await fetch(`/api/marketplace/annonces/${annonceId}/acheter`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, annonceId })
+        credentials: 'same-origin'
     });
 
-    const data = await res.json();
-    alert(data.message);
-    if (res.ok) {
-        document.getElementById('money').textContent = data.credits;
-        loadMarketListings();
+    let data;
+    try { data = await res.json(); } catch { data = null; }
+    if (!res.ok) {
+        alert(data?.message || data?.error || 'Impossible d\'acheter ce joueur');
+        return;
     }
+
+    alert(data?.message || 'Achat effectué');
+    loadMarketListings();
+    try {
+        const credits = await (await fetch('/api/moi/credits', { credentials: 'same-origin' })).json();
+        document.getElementById('money').textContent = credits.credits;
+    } catch (_) {}
+}
+
+async function removeListing(annonceId) {
+    if (!confirm('Retirer cette annonce du marché ?')) return;
+
+    const res = await fetch(`/api/marketplace/annonces/${annonceId}`, {
+        method: 'DELETE',
+        credentials: 'same-origin'
+    });
+
+    let data;
+    try { data = await res.json(); } catch { data = null; }
+    if (!res.ok) {
+        alert(data?.message || data?.error || 'Impossible de retirer cette annonce');
+        return;
+    }
+
+    alert(data?.message || 'Annonce supprimée');
+    loadMarketListings();
 }
 
 document.getElementById('search')?.addEventListener('input', (e) => {

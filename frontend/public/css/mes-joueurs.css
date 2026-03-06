@@ -134,42 +134,11 @@ main {
 .stats {
     color: rgba(255, 255, 255, 0.8);
     font-size: 0.95rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    align-items: flex-end;
 }
 
 .stats #totalPlayers {
     font-weight: bold;
     color: #ffd700;
-}
-
-.team-average {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    background: rgba(255, 255, 255, 0.1);
-    padding: 0.5rem 1rem;
-    border-radius: 20px;
-    backdrop-filter: blur(10px);
-}
-
-.average-label {
-    font-size: 0.9rem;
-    color: rgba(255, 255, 255, 0.9);
-}
-
-.average-value {
-    font-size: 1.2rem;
-    font-weight: bold;
-    color: #27ae60;
-    text-shadow: 0 0 10px rgba(39, 174, 96, 0.5);
-}
-
-.average-rating {
-    font-size: 0.9rem;
-    color: rgba(255, 255, 255, 0.7);
 }
 
 /* Filtres */

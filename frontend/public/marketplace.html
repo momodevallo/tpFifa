@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Marketplace - FIFA Project</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="container topbar-inner">
+      <a class="brand" href="/dashboard.html">
+        <div class="brand-badge">⚽</div>
+        <span>FIFA Ultimate Project</span>
+      </a>
+      <nav class="nav">
+        <a href="/dashboard.html">Accueil</a>
+        <a href="/collection.html">Collection</a>
+        <a href="/packs.html">Packs</a>
+        <a href="/marketplace.html">Marketplace</a>
+        <a href="/equipe.html">Équipe</a>
+      </nav>
+      <div class="userbox">
+        <div class="user-pill">👤 <span data-user-pseudo>...</span></div>
+        <div class="user-pill">💰 <span data-user-credits>...</span></div>
+        <button class="btn-ghost" onclick="logout()">Déconnexion</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="page">
+    <div class="container">
+      <section class="page-header">
+        <div>
+          <h1>Marketplace</h1>
+          <p class="muted">Mettre une carte en vente, acheter une annonce, ou retirer sa propre annonce.</p>
+        </div>
+      </section>
+
+      <div class="market-side">
+        <article class="card">
+          <div class="card-title">
+            <h2>Créer une annonce</h2>
+          </div>
+          <div id="marketMessage" class="info hidden"></div>
+          <form id="listingForm" class="form-grid">
+            <div>
+              <label for="cardId">ID de la carte</label>
+              <input class="input" id="cardId" type="number" min="1" required>
+            </div>
+            <div>
+              <label for="price">Prix</label>
+              <input class="input" id="price" type="number" min="1" required>
+            </div>
+            <button class="btn" type="submit">Mettre en vente</button>
+          </form>
+
+          <hr style="border-color: var(--line); margin: 24px 0;">
+
+          <div class="card-title">
+            <h3>Mes cartes vendables</h3>
+          </div>
+          <div id="sellableCards" class="list"></div>
+        </article>
+
+        <section>
+          <div class="card-title" style="margin-bottom: 16px;">
+            <h2>Annonces disponibles</h2>
+          </div>
+          <div id="marketGrid" class="market-grid"></div>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <script src="/js/app.js"></script>
+  <script>
+    setActiveNav();
+    let myPseudo = '';
+
+    async function refreshMarket() {
+      const annonces = await apiFetch('/api/marketplace');
+      const grid = document.getElementById('marketGrid');
+      if (!annonces.length) {
+        grid.innerHTML = '<div class="card center muted">Aucune annonce pour le moment.</div>';
+        return;
+      }
+      grid.innerHTML = annonces.map(annonce => renderMarketplaceCard(annonce, myPseudo)).join('');
+    }
+
+    async function loadSellableCards() {
+      const cards = await apiFetch('/api/moi/cartes');
+      const sellable = cards.filter(c => !c.nonEchangeable);
+      const box = document.getElementById('sellableCards');
+      if (!sellable.length) {
+        box.innerHTML = '<div class="small">Aucune carte échangeable disponible.</div>';
+        return;
+      }
+      box.innerHTML = sellable.slice(0, 8).map(c => `
+        <div class="list-row">
+          <div>
+            <strong>#${c.id}</strong> — ${escapeHtml(c.joueur.nom)}
+            <div class="small">${escapeHtml(c.joueur.poste)} · ${escapeHtml(c.joueur.qualite)} · note ${escapeHtml(c.joueur.note)}</div>
+          </div>
+          <button class="btn-secondary" onclick="prefill(${c.id})">Choisir</button>
+        </div>
+      `).join('');
+    }
+
+    function prefill(id) {
+      document.getElementById('cardId').value = id;
+    }
+
+    async function buyListing(id) {
+      try {
+        const msg = await apiFetch(`/api/marketplace/annonces/${id}/acheter`, { method: 'POST' });
+        showMessage('#marketMessage', 'success', typeof msg === 'string' ? msg : 'Achat effectué.');
+        await loadSessionInfo();
+        await refreshMarket();
+        await loadSellableCards();
+      } catch (error) {
+        showMessage('#marketMessage', 'error', error.message || 'Impossible d\'acheter cette annonce.');
+      }
+    }
+
+    async function removeListing(id) {
+      try {
+        const msg = await apiFetch(`/api/marketplace/annonces/${id}`, { method: 'DELETE' });
+        showMessage('#marketMessage', 'success', typeof msg === 'string' ? msg : 'Annonce retirée.');
+        await refreshMarket();
+        await loadSellableCards();
+      } catch (error) {
+        showMessage('#marketMessage', 'error', error.message || 'Impossible de retirer cette annonce.');
+      }
+    }
+
+    document.getElementById('listingForm').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      try {
+        const carteId = Number(document.getElementById('cardId').value);
+        const prix = Number(document.getElementById('price').value);
+        await apiFetch('/api/marketplace/annonces', {
+          method: 'POST',
+          body: JSON.stringify({ carteId, prix })
+        });
+        showMessage('#marketMessage', 'success', 'Annonce créée avec succès.');
+        document.getElementById('listingForm').reset();
+        localStorage.removeItem('selectedCardId');
+        await refreshMarket();
+        await loadSellableCards();
+      } catch (error) {
+        showMessage('#marketMessage', 'error', error.message || 'Impossible de créer cette annonce.');
+      }
+    });
+
+    (async () => {
+      const session = await loadSessionInfo();
+      myPseudo = session.user.pseudo;
+      const draftId = localStorage.getItem('selectedCardId');
+      if (draftId) document.getElementById('cardId').value = draftId;
+      await refreshMarket();
+      await loadSellableCards();
+    })();
+  </script>
+</body>
+</html>

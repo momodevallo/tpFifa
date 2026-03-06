@@ -1,7 +1,20 @@
-// frontend/public/js/header.js
 (function () {
     const mount = document.getElementById("tp-header");
     if (!mount) return;
+
+    if (!document.getElementById('tp-header-styles')) {
+        const style = document.createElement('style');
+        style.id = 'tp-header-styles';
+        style.textContent = `
+          .coins-wrap { display:flex; align-items:center; gap:.6rem; }
+          .btn-regenerate {
+            background:#f1c40f; color:#222; border:none; border-radius:8px;
+            padding:.45rem .7rem; cursor:pointer; font-weight:700; transition:.2s;
+          }
+          .btn-regenerate:hover { transform:scale(1.04); }
+        `;
+        document.head.appendChild(style);
+    }
 
     mount.innerHTML = `
     <header>
@@ -9,14 +22,16 @@
         <img src="/img/logo.png" alt="TP FIFA" class="logo-img">
       </div>
 
-
       <div class="user-info">
         <span class="greeting">Salut <strong id="pseudo">Joueur</strong></span>
-        <div class="coins">
-          <img class="coin-icon"
-            src="https://gmedia.playstation.com/is/image/SIEPDC/fifa-ultimate-team-coins-01-ps4-ps5-en-09sep21?$native--t$"
-            alt="coins">
-          <span id="money">10000</span>
+        <div class="coins-wrap">
+          <div class="coins">
+            <img class="coin-icon"
+              src="https://gmedia.playstation.com/is/image/SIEPDC/fifa-ultimate-team-coins-01-ps4-ps5-en-09sep21?$native--t$"
+              alt="coins">
+            <span id="money">...</span>
+          </div>
+          <button id="regenCredits" class="btn-regenerate" title="Ajouter des crédits">+ crédits</button>
         </div>
       </div>
 
@@ -24,13 +39,14 @@
     </header>
 
     <nav class="main-nav">
-      <button class="nav-btn" data-page="accueil" data-href="/accueil">Mon Équipe</button>
+      <button class="nav-btn" data-page="accueil" data-href="/accueil.html">Mon Équipe</button>
       <button class="nav-btn" data-page="boutique" data-href="/boutique.html">Boutique</button>
       <button class="nav-btn" data-page="marche" data-href="/marche.html">Marché des Transferts</button>
       <button class="nav-btn" data-page="composition" data-href="/composition.html">Composition</button>
-      <button class="nav-btn btn-play">Jouer</button>
+      <button class="nav-btn" data-page="mes-joueurs" data-href="/mes-joueurs.html">Mes joueurs</button>
     </nav>
   `;
+
     document.querySelectorAll(".main-nav .nav-btn[data-href]").forEach((btn) => {
         btn.addEventListener("click", () => (window.location.href = btn.dataset.href));
     });
@@ -40,31 +56,93 @@
         p.includes("boutique") ? "boutique" :
             p.includes("marche") ? "marche" :
                 p.includes("composition") ? "composition" :
-                    (p === "/accueil" || p.includes("accueil")) ? "accueil" :
-                        "";
+                    p.includes("mes-joueurs") ? "mes-joueurs" :
+                        p.includes("accueil") ? "accueil" : "";
 
     document.querySelectorAll(".main-nav .nav-btn").forEach((b) => b.classList.remove("active"));
     const activeBtn = document.querySelector(`.main-nav .nav-btn[data-page="${current}"]`);
     if (activeBtn) activeBtn.classList.add("active");
 
-    const pseudo = localStorage.getItem("pseudo");
-    const userId = localStorage.getItem("userId");
-    
-    if (pseudo) document.getElementById("pseudo").textContent = pseudo;
-    if (userId) {
-        fetch(`/api/cards/my-cards?userId=${userId}`)
-            .then(res => res.json())
-            .then(data => document.getElementById("money").textContent = data.credits);
+    function getResponseKind(res) {
+        const contentType = (res.headers.get('content-type') || '').toLowerCase();
+        if (res.status === 401 || res.status === 403) return 'unauthorized';
+        if (res.redirected || res.url.includes('/login')) return 'login-page';
+        if (contentType.includes('text/html')) return 'html';
+        if (contentType.includes('application/json')) return 'json';
+        return 'other';
     }
 
-    // Logout (simple)
+    async function safeJsonFetch(url, options = {}) {
+        const res = await fetch(url, { credentials: 'same-origin', ...options });
+        const kind = getResponseKind(res);
+
+        if (kind === 'unauthorized' || kind === 'login-page') {
+            window.location.href = '/login';
+            return null;
+        }
+
+        if (!res.ok) {
+            let message = `Erreur ${res.status}`;
+            try {
+                if (kind === 'json') {
+                    const data = await res.json();
+                    message = data?.message || data?.error || message;
+                } else {
+                    const text = await res.text();
+                    if (text) message = text;
+                }
+            } catch (_) {}
+            throw new Error(message);
+        }
+
+        if (kind !== 'json') {
+            throw new Error('Réponse invalide du serveur');
+        }
+
+        return res.json();
+    }
+
+    async function loadUserInfo() {
+        try {
+            const [user, credits] = await Promise.all([
+                safeJsonFetch('/api/moi'),
+                safeJsonFetch('/api/moi/credits')
+            ]);
+
+            if (!user || !credits) return;
+
+            document.getElementById('pseudo').textContent = user.pseudo;
+            document.getElementById('money').textContent = credits.credits;
+        } catch (e) {
+            console.error('Erreur chargement session :', e);
+            document.getElementById('money').textContent = 'Erreur';
+        }
+    }
+
+    loadUserInfo();
+
+    const regenBtn = document.getElementById('regenCredits');
+    regenBtn?.addEventListener('click', async () => {
+        try {
+            regenBtn.disabled = true;
+            const data = await safeJsonFetch('/api/moi/credits/regenerer', { method: 'POST' });
+            if (data) {
+                document.getElementById('money').textContent = data.credits;
+                alert(`+5000 crédits ajoutés. Nouveau total : ${data.credits}`);
+            }
+        } catch (e) {
+            console.error(e);
+            alert(e.message || 'Impossible de régénérer les crédits');
+        } finally {
+            regenBtn.disabled = false;
+        }
+    });
+
     const logoutBtn = document.getElementById("logout");
     if (logoutBtn) {
-        logoutBtn.addEventListener("click", () => {
-            localStorage.removeItem("pseudo");
-            localStorage.removeItem("money");
-            localStorage.removeItem("userId");
-            window.location.href = "/auth/login";
+        logoutBtn.addEventListener("click", async () => {
+            await fetch('/logout', { method: 'POST', credentials: 'same-origin' });
+            window.location.href = '/login?logout';
         });
     }
 })();

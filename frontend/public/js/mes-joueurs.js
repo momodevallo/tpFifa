@@ -1,50 +1,53 @@
-const userId = localStorage.getItem('userId');
-if (!userId) window.location.href = '/auth/login';
-
 async function loadMyCards() {
-    const res = await fetch(`/api/cards/my-cards?userId=${userId}`);
-    const data = await res.json();
-    
-    document.getElementById('money').textContent = data.credits;
-    document.getElementById('totalPlayers').textContent = data.cards.length;
-    
-    // Calculer la moyenne d'équipe
-    if (data.cards.length > 0) {
-        const totalRating = data.cards.reduce((sum, card) => sum + card.note, 0);
-        const averageRating = (totalRating / data.cards.length / 10).toFixed(1);
-        document.getElementById('teamAverage').textContent = averageRating;
-    } else {
-        document.getElementById('teamAverage').textContent = '0.0';
+    const res = await fetch('/api/moi/cartes', { credentials: 'same-origin' });
+    if (!res.ok) {
+        if (res.status === 401) window.location.href = '/login';
+        return;
     }
-    
+    const cards = await res.json();
+
+    try {
+        const creditsRes = await fetch('/api/moi/credits', { credentials: 'same-origin' });
+        const credits = await creditsRes.json();
+        document.getElementById('money').textContent = credits.credits;
+    } catch (_) {}
+
+    document.getElementById('totalPlayers').textContent = cards.length;
+
     const grid = document.querySelector('.players-grid');
-    grid.innerHTML = data.cards.map(card => `
-        <div class="player-card" data-position="${card.poste}">
-            <div class="rating">${card.note}</div>
-            <img src="/player-image/${card.joueur_id}" alt="${card.nom}">
+    grid.innerHTML = cards.map(card => `
+        <div class="player-card" data-position="${card.joueur.poste}">
+            <div class="rating">${card.joueur.note}</div>
+            <img src="${card.joueur.imageUrl || ''}" alt="${card.joueur.nom}">
             <div class="player-info">
-                <span class="name">${card.nom}</span>
-                <span class="position">${card.poste}</span>
-                <span class="club">${card.club || ''}</span>
+                <span class="name">${card.joueur.nom}</span>
+                <span class="position">${card.joueur.poste}</span>
+                <span class="club">${card.joueur.club || ''}</span>
             </div>
-            <button class="btn-sell" onclick="sellCard(${card.carte_id})">Vendre</button>
+            ${card.nonEchangeable ? '<button class="btn-sell" disabled>Non échangeable</button>' : `<button class="btn-sell" onclick="sellCard(${card.id})">Vendre</button>`}
         </div>
     `).join('');
 }
 
 async function sellCard(carteId) {
     const prix = prompt('Prix de vente ?');
-    if (!prix || prix <= 0) return;
+    if (!prix || Number(prix) <= 0) return;
 
-    const res = await fetch('/api/marketplace/sell', {
+    const res = await fetch('/api/marketplace/annonces', {
         method: 'POST',
+        credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, carteId, prix: parseInt(prix) })
+        body: JSON.stringify({ carteId, prix: parseInt(prix, 10) })
     });
 
-    const data = await res.json();
-    alert(data.message);
-    if (res.ok) loadMyCards();
+    let data;
+    try { data = await res.json(); } catch { data = null; }
+    if (!res.ok) {
+        alert(data?.message || data?.error || 'Impossible de mettre en vente');
+        return;
+    }
+    alert('Carte mise en vente');
+    loadMyCards();
 }
 
 document.getElementById('search')?.addEventListener('input', (e) => {

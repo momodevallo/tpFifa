@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - FIFA Project</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="container topbar-inner">
+      <a class="brand" href="/dashboard.html">
+        <div class="brand-badge">⚽</div>
+        <span>FIFA Ultimate Project</span>
+      </a>
+      <nav class="nav">
+        <a href="/dashboard.html">Accueil</a>
+        <a href="/collection.html">Collection</a>
+        <a href="/packs.html">Packs</a>
+        <a href="/marketplace.html">Marketplace</a>
+        <a href="/equipe.html">Équipe</a>
+      </nav>
+      <div class="userbox">
+        <div class="user-pill">👤 <span data-user-pseudo>...</span></div>
+        <div class="user-pill">💰 <span data-user-credits>...</span></div>
+        <button class="btn-ghost" onclick="logout()">Déconnexion</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="page">
+    <div class="container">
+      <section class="hero">
+        <article class="card">
+          <h1>Bienvenue <span data-user-pseudo>...</span></h1>
+          <p class="muted">Depuis ce tableau de bord, tu peux montrer rapidement le fonctionnement complet de ton application pendant la soutenance.</p>
+          <div class="actions">
+            <a class="btn" href="/packs.html">Ouvrir un pack</a>
+            <a class="btn-secondary" href="/marketplace.html">Aller au marché</a>
+            <button class="btn-success" id="regenBtn">Régénérer +5000 crédits</button>
+          </div>
+          <div id="dashboardMessage" class="success hidden" style="margin-top:14px;"></div>
+        </article>
+
+        <article class="card soft grid grid-2">
+          <div class="kpi">
+            <div class="muted">Crédits actuels</div>
+            <div class="value" id="creditsValue">...</div>
+          </div>
+          <div class="kpi">
+            <div class="muted">Cartes possédées</div>
+            <div class="value" id="cardsCount">...</div>
+          </div>
+          <div class="kpi">
+            <div class="muted">Formation</div>
+            <div class="value" id="formationValue">4-4-2</div>
+          </div>
+          <div class="kpi">
+            <div class="muted">Joueurs dans l'équipe</div>
+            <div class="value" id="teamCount">...</div>
+          </div>
+        </article>
+      </section>
+
+      <section class="page-header">
+        <div>
+          <h1>Accès rapide</h1>
+          <p class="muted">Les pages essentielles pour la démo.</p>
+        </div>
+      </section>
+
+      <section class="quick-links">
+        <a class="card" href="/collection.html">
+          <h3>Ma collection</h3>
+          <p class="muted">Voir toutes mes cartes, mes notes et mes raretés.</p>
+        </a>
+        <a class="card" href="/packs.html">
+          <h3>Ouverture de packs</h3>
+          <p class="muted">Déclencher un pack et attendre son résultat asynchrone.</p>
+        </a>
+        <a class="card" href="/marketplace.html">
+          <h3>Marketplace</h3>
+          <p class="muted">Acheter, vendre ou retirer une annonce.</p>
+        </a>
+        <a class="card" href="/equipe.html">
+          <h3>Composition d'équipe</h3>
+          <p class="muted">Placer ou retirer des cartes dans la formation.</p>
+        </a>
+      </section>
+    </div>
+  </main>
+
+  <script src="/js/app.js"></script>
+  <script>
+    setActiveNav();
+
+    async function loadDashboard() {
+      const [{ credits }, cards, team] = await Promise.all([
+        apiFetch('/api/moi/credits'),
+        apiFetch('/api/moi/cartes'),
+        apiFetch('/api/moi/equipe')
+      ]);
+
+      const teamCount = [team.gardiens, team.defenseurs, team.milieux, team.attaquants]
+        .reduce((acc, list) => acc + list.length, 0);
+
+      document.getElementById('creditsValue').textContent = credits;
+      document.getElementById('cardsCount').textContent = cards.length;
+      document.getElementById('formationValue').textContent = team.formation;
+      document.getElementById('teamCount').textContent = teamCount;
+    }
+
+    document.getElementById('regenBtn').addEventListener('click', async () => {
+      const button = document.getElementById('regenBtn');
+      button.disabled = true;
+      try {
+        const data = await apiFetch('/api/moi/credits/regenerer', { method: 'POST' });
+        document.getElementById('creditsValue').textContent = data.credits;
+        document.querySelectorAll('[data-user-credits]').forEach(node => node.textContent = `${data.credits} crédits`);
+        showMessage('#dashboardMessage', 'success', 'Tes crédits ont bien été régénérés.');
+      } catch (error) {
+        showMessage('#dashboardMessage', 'error', error.message || 'Impossible de régénérer les crédits.');
+      } finally {
+        button.disabled = false;
+      }
+    });
+
+    (async () => {
+      await loadSessionInfo();
+      await loadDashboard();
+    })();
+  </script>
+</body>
+</html>
