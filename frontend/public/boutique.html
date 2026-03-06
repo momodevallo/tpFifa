@@ -72,6 +72,30 @@
     </section>
 </main>
 
+<!-- Modal d'animation d'ouverture de pack -->
+<div id="packOpeningModal" class="pack-modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>🎉 Ouverture du pack</h3>
+            <button class="close-modal" onclick="closePackModal()">&times;</button>
+        </div>
+        <div class="pack-animation-container">
+            <div class="pack-3d" id="pack3d">
+                <div class="pack-face front"></div>
+                <div class="pack-face back"></div>
+                <div class="pack-face left"></div>
+                <div class="pack-face right"></div>
+                <div class="pack-face top"></div>
+                <div class="pack-face bottom"></div>
+            </div>
+            <div class="cards-reveal" id="cardsReveal"></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-continue" onclick="closePackModal()">Continuer</button>
+        </div>
+    </div>
+</div>
+
 <script src="/js/boutique.js"></script>
 </body>
 </html>

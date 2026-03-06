@@ -8,6 +8,15 @@ async function loadMyCards() {
     document.getElementById('money').textContent = data.credits;
     document.getElementById('totalPlayers').textContent = data.cards.length;
     
+    // Calculer la moyenne d'équipe
+    if (data.cards.length > 0) {
+        const totalRating = data.cards.reduce((sum, card) => sum + card.note, 0);
+        const averageRating = (totalRating / data.cards.length / 10).toFixed(1);
+        document.getElementById('teamAverage').textContent = averageRating;
+    } else {
+        document.getElementById('teamAverage').textContent = '0.0';
+    }
+    
     const grid = document.querySelector('.players-grid');
     grid.innerHTML = data.cards.map(card => `
         <div class="player-card" data-position="${card.poste}">
