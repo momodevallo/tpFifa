@@ -1,0 +1,4 @@
+RewriteEngine On
+
+# Tout passe à Node
+RewriteRule ^(.*)$ http://127.0.0.1:8000/$1 [P,L]

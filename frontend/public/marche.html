@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="css/marche.css">
+    <link rel="icon" type="image/png" href="https://img.freepik.com/premium-photo/professional-football-logo-white-background_1027230-26683.jpg">
+    <title>Marché des Transferts - FIFA TP</title>
+</head>
+<body>
+<div id="tp-header"></div>
+<script src="/js/header.js"></script>
+
+
+<!-- MAIN : zone marché -->
+<main>
+    <section class="market">
+        <div class="market-header">
+            <h2 class="market-title"> Marché des Transferts</h2>
+            <button class="btn-sell" onclick="window.location.href='mes-joueurs.html'">
+                 Vendre un joueur
+            </button>
+        </div>
+
+        <!-- Filtres (optionnels pour plus tard) -->
+        <div class="filters">
+            <input type="text" id="search" placeholder=" Rechercher un joueur..." class="search-input">
+            <select class="filter-select">
+                <option value="all">Tous les postes</option>
+                <option value="ATT">Attaquant</option>
+                <option value="MIL">Milieu</option>
+                <option value="DEF">Défenseur</option>
+                <option value="GB">Gardien</option>
+            </select>
+        </div>
+
+        <!-- Liste des joueurs disponibles -->
+        <div class="players-list">
+
+            <!-- Joueur 1 -->
+            <div class="player-card">
+                <div class="player-image">
+                    <img src="https://cdn.sofifa.net/players/158/023/25_60.png" alt="Mbappé">
+                    <div class="player-rating">91</div>
+                </div>
+                <div class="player-details">
+                    <h3 class="player-name">Kylian Mbappé</h3>
+                    <div class="player-meta">
+                        <span class="player-position">ATT</span>
+                        <span class="player-club">Real Madrid</span>
+                    </div>
+                </div>
+                <div class="player-actions">
+                    <div class="player-price">
+                        <img class="coin-small"
+                             src="https://gmedia.playstation.com/is/image/SIEPDC/fifa-ultimate-team-coins-01-ps4-ps5-en-09sep21?$native--t$"
+                             alt="coins">
+                        <span>15000</span>
+                    </div>
+                    <button class="btn-buy-player" data-player="1" data-price="15000">Acheter</button>
+                </div>
+            </div>
+
+            <!-- Joueur 2 -->
+            <div class="player-card">
+                <div class="player-image">
+                    <img src="https://cdn.sofifa.net/players/158/023/25_60.png" alt="Haaland">
+                    <div class="player-rating">91</div>
+                </div>
+                <div class="player-details">
+                    <h3 class="player-name">Erling Haaland</h3>
+                    <div class="player-meta">
+                        <span class="player-position">ATT</span>
+                        <span class="player-club">Manchester City</span>
+                    </div>
+                </div>
+                <div class="player-actions">
+                    <div class="player-price">
+                        <img class="coin-small"
+                             src="https://gmedia.playstation.com/is/image/SIEPDC/fifa-ultimate-team-coins-01-ps4-ps5-en-09sep21?$native--t$"
+                             alt="coins">
+                        <span>14500</span>
+                    </div>
+                    <button class="btn-buy-player" data-player="2" data-price="14500">Acheter</button>
+                </div>
+            </div>
+
+            <!-- Joueur 3 -->
+            <div class="player-card">
+                <div class="player-image">
+                    <img src="https://cdn.sofifa.net/players/158/023/25_60.png" alt="De Bruyne">
+                    <div class="player-rating">91</div>
+                </div>
+                <div class="player-details">
+                    <h3 class="player-name">Kevin De Bruyne</h3>
+                    <div class="player-meta">
+                        <span class="player-position">MIL</span>
+                        <span class="player-club">Manchester City</span>
+                    </div>
+                </div>
+                <div class="player-actions">
+                    <div class="player-price">
+                        <img class="coin-small"
+                             src="https://gmedia.playstation.com/is/image/SIEPDC/fifa-ultimate-team-coins-01-ps4-ps5-en-09sep21?$native--t$"
+                             alt="coins">
+                        <span>12000</span>
+                    </div>
+                    <button class="btn-buy-player" data-player="3" data-price="12000">Acheter</button>
+                </div>
+            </div>
+
+            <!-- Joueur 4 -->
+            <div class="player-card">
+                <div class="player-image">
+                    <img src="https://cdn.sofifa.net/players/158/023/25_60.png" alt="Van Dijk">
+                    <div class="player-rating">90</div>
+                </div>
+                <div class="player-details">
+                    <h3 class="player-name">Virgil van Dijk</h3>
+                    <div class="player-meta">
+                        <span class="player-position">DEF</span>
+                        <span class="player-club">Liverpool</span>
+                    </div>
+                </div>
+                <div class="player-actions">
+                    <div class="player-price">
+                        <img class="coin-small"
+                             src="https://gmedia.playstation.com/is/image/SIEPDC/fifa-ultimate-team-coins-01-ps4-ps5-en-09sep21?$native--t$"
+                             alt="coins">
+                        <span>8500</span>
+                    </div>
+                    <button class="btn-buy-player" data-player="4" data-price="8500">Acheter</button>
+                </div>
+            </div>
+
+            <!-- Joueur 5 -->
+            <div class="player-card">
+                <div class="player-image">
+                    <img src="https://cdn.sofifa.net/players/158/023/25_60.png" alt="Alisson">
+                    <div class="player-rating">89</div>
+                </div>
+                <div class="player-details">
+                    <h3 class="player-name">Alisson Becker</h3>
+                    <div class="player-meta">
+                        <span class="player-position">GB</span>
+                        <span class="player-club">Liverpool</span>
+                    </div>
+                </div>
+                <div class="player-actions">
+                    <div class="player-price">
+                        <img class="coin-small"
+                             src="https://gmedia.playstation.com/is/image/SIEPDC/fifa-ultimate-team-coins-01-ps4-ps5-en-09sep21?$native--t$"
+                             alt="coins">
+                        <span>6500</span>
+                    </div>
+                    <button class="btn-buy-player" data-player="5" data-price="6500">Acheter</button>
+                </div>
+            </div>
+
+            <!-- Joueur 6 -->
+            <div class="player-card">
+                <div class="player-image">
+                    <img src="https://cdn.sofifa.net/players/158/023/25_60.png" alt="Tchouaméni">
+                    <div class="player-rating">85</div>
+                </div>
+                <div class="player-details">
+                    <h3 class="player-name">Aurélien Tchouaméni</h3>
+                    <div class="player-meta">
+                        <span class="player-position">MIL</span>
+                        <span class="player-club">Real Madrid</span>
+                    </div>
+                </div>
+                <div class="player-actions">
+                    <div class="player-price">
+                        <img class="coin-small"
+                             src="https://gmedia.playstation.com/is/image/SIEPDC/fifa-ultimate-team-coins-01-ps4-ps5-en-09sep21?$native--t$"
+                             alt="coins">
+                        <span>5000</span>
+                    </div>
+                    <button class="btn-buy-player" data-player="6" data-price="5000">Acheter</button>
+                </div>
+            </div>
+
+        </div>
+    </section>
+</main>
+
+<script src="/js/marche.js"></script>
+</body>
+</html>
