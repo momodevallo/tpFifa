@@ -19,7 +19,7 @@ public class StockagePacks {
         do {
             uuid = UUID.randomUUID().toString();
         } while (stockage.containsKey(uuid));
-        stockage.put(uuid, null); // null = "pas encore prêt" (comme TP3)
+        stockage.put(uuid, null);
         return uuid;
     }
 

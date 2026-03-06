@@ -23,10 +23,7 @@ public class UserRestController {
     private final UserService userService;
     private final PortefeuilleRepository portefeuilleRepository;
 
-    public UserRestController(UserRepository userRepository,
-                              CarteRepository carteRepository,
-                              UserService userService,
-                              PortefeuilleRepository portefeuilleRepository) {
+    public UserRestController(UserRepository userRepository, CarteRepository carteRepository, UserService userService, PortefeuilleRepository portefeuilleRepository) {
         this.userRepository = userRepository;
         this.carteRepository = carteRepository;
         this.userService = userService;
@@ -43,16 +40,15 @@ public class UserRestController {
 
     @GetMapping("/moi/cartes")
     public Flux<Carte> mesCartes(Mono<Principal> principalMono) {
-        return principalMono.flatMap(p ->
-                        Mono.fromCallable(() -> userRepository.findByPseudo(p.getName()))
-                                .subscribeOn(Schedulers.boundedElastic())
-                )
-                .flatMapMany(user ->
-                        Mono.fromCallable(() -> carteRepository.findByUtilisateur(user))
-                                .subscribeOn(Schedulers.boundedElastic())
-                                .flatMapMany(Flux::fromIterable)
-                );
+        return principalMono
+                .map(Principal::getName)
+                .flatMap(username -> Mono.fromCallable(() -> userRepository.findByPseudo(username))
+                        .subscribeOn(Schedulers.boundedElastic()))
+                .flatMapMany(user -> Mono.fromCallable(() -> carteRepository.findByUtilisateur(user))
+                        .subscribeOn(Schedulers.boundedElastic())
+                        .flatMapMany(Flux::fromIterable));
     }
+
 
     @GetMapping("/moi/credits")
     public Mono<Long> mesCredits(Mono<Principal> principalMono) {

@@ -24,10 +24,7 @@ public class PackRestController {
     private final UserRepository userRepository;
     private final StockagePacks stockagePacks;
 
-    public PackRestController(TypePackRepository typePackRepository,
-                              PackService packService,
-                              UserRepository userRepository,
-                              StockagePacks stockagePacks) {
+    public PackRestController(TypePackRepository typePackRepository, PackService packService, UserRepository userRepository, StockagePacks stockagePacks) {
         this.typePackRepository = typePackRepository;
         this.packService = packService;
         this.userRepository = userRepository;
