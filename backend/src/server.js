@@ -368,6 +368,9 @@ app.post('/api/marketplace/annonces', async (req, res) => {
     if (Number(card.en_equipe) === 1) {
       return res.status(400).json({ message: 'Retire d’abord cette carte de ton équipe' });
     }
+    if (Number(card.non_echangeable) === 1) {
+      return res.status(400).json({ message: 'Cette carte n’est pas échangeable' });
+    }
 
     await pool.query(
       'INSERT INTO annonces_marche (carte_id, vendeur_id, prix) VALUES (?, ?, ?)',
@@ -545,7 +548,7 @@ async function createStarterTeam(conn, userId) {
 
     for (const player of players) {
       const [result] = await conn.query(
-        'INSERT INTO cartes (utilisateur_id, joueur_id) VALUES (?, ?)',
+        'INSERT INTO cartes (utilisateur_id, joueur_id, non_echangeable) VALUES (?, ?, 1)',
         [userId, player.id]
       );
       await conn.query(
@@ -559,7 +562,7 @@ async function createStarterTeam(conn, userId) {
 function mapCardRowToView(row) {
   return {
     id: Number(row.carte_id),
-    nonEchangeable: false,
+    nonEchangeable: Number(row.non_echangeable || 0) === 1,
     enEquipe: Number(row.en_equipe) === 1,
     joueur: {
       id: Number(row.joueur_id),
@@ -603,7 +606,7 @@ async function getTeam(userId) {
   const [teamRows] = await pool.query('SELECT formation FROM equipes WHERE utilisateur_id = ?', [userId]);
   const formation = teamRows[0]?.formation || '4-4-2';
   const [rows] = await pool.query(
-    `SELECT c.id AS carte_id, c.joueur_id, 1 AS en_equipe,
+    `SELECT c.id AS carte_id, c.joueur_id, c.non_echangeable, 1 AS en_equipe,
             j.nom, j.poste, j.qualite, j.note, j.image_url, j.nationalite, j.club
      FROM equipes_cartes ec
      JOIN cartes c ON c.id = ec.carte_id
