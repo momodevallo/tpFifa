@@ -2,6 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="css/boutique.css">
     <link rel="icon" type="image/png" href="https://img.freepik.com/premium-photo/professional-football-logo-white-background_1027230-26683.jpg">
     <title>Boutique - FIFA TP</title>
@@ -12,10 +13,15 @@
 
 <main>
     <section class="shop">
-        <h2 class="shop-title">Packs</h2>
+        <div class="shop-heading">
+            <div>
+                <h2 class="shop-title">Packs</h2>
+                <p class="shop-subtitle">Ouverture asynchrone avec API REST : lancement du pack, suivi par UUID, puis révélation animée des cartes.</p>
+            </div>
+            <div id="shopStatus" class="shop-status shop-status--hidden"></div>
+        </div>
 
         <div class="packs-container">
-            <!-- Pack Bronze -->
             <div class="pack-card" data-type="bronze">
                 <div class="pack-image">
                     <img src="https://fifautbin.com/wp-content/uploads/2023/12/fifa-rare-bronze-pack-207x300.png" alt="Pack Bronze">
@@ -29,14 +35,13 @@
                              alt="coins">
                         <span>100</span>
                     </div>
-                    <button class="btn-buy" data-pack="bronze" data-price="500">Acheter</button>
+                    <button class="btn-buy" data-pack="bronze">Acheter</button>
                 </div>
             </div>
 
-            <!-- Pack Silver -->
             <div class="pack-card" data-type="silver">
                 <div class="pack-image">
-                    <img src="https://fifautbin.com/wp-content/uploads/2023/12/fifa-rare-silver-pack.png" alt="Pack Silver">
+                    <img src="https://fifautbin.com/wp-content/uploads/2023/12/fifa-rare-silver-pack.png" alt="Pack Argent">
                 </div>
                 <div class="pack-info">
                     <h3 class="pack-name">Pack Argent</h3>
@@ -47,11 +52,10 @@
                              alt="coins">
                         <span>300</span>
                     </div>
-                    <button class="btn-buy" data-pack="silver" data-price="2000">Acheter</button>
+                    <button class="btn-buy" data-pack="silver">Acheter</button>
                 </div>
             </div>
 
-            <!-- Pack Gold -->
             <div class="pack-card" data-type="gold">
                 <div class="pack-image">
                     <img src="https://fifautbin.com/wp-content/uploads/2023/12/fifa-gold-pack.png" alt="Pack Or">
@@ -65,12 +69,33 @@
                              alt="coins">
                         <span>600</span>
                     </div>
-                    <button class="btn-buy" data-pack="gold" data-price="7500">Acheter</button>
+                    <button class="btn-buy" data-pack="gold">Acheter</button>
                 </div>
             </div>
         </div>
     </section>
 </main>
+
+<section id="packOverlay" class="pack-overlay hidden" aria-hidden="true">
+    <div class="pack-modal" role="dialog" aria-modal="true" aria-labelledby="packOverlayTitle">
+        <button id="closePackOverlay" class="pack-close" type="button" aria-label="Fermer">×</button>
+        <p class="pack-kicker">Animation d'ouverture</p>
+        <h2 id="packOverlayTitle">Révélation du pack</h2>
+        <p id="packOverlaySubtitle" class="pack-overlay-subtitle">Préparation du pack...</p>
+
+        <div id="packStage" class="pack-stage is-waiting">
+            <div class="pack-visual-shell">
+                <div id="packVisual" class="pack-visual">
+                    <div class="pack-glow"></div>
+                    <div class="pack-front">PACK</div>
+                    <div class="pack-back"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="packRevealGrid" class="reveal-grid"></div>
+    </div>
+</section>
 
 <script src="/js/boutique.js"></script>
 </body>
