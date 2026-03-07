@@ -294,3 +294,21 @@ main {
     width: auto;
     display: block;
 }
+
+
+.player-empty {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 1.2rem;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.player-card img {
+    object-fit: cover;
+}
+
+.logo,
+.logo-img {
+    display: none !important;
+}

@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -14,63 +15,65 @@
         <div class="shop-heading">
             <div>
                 <h2 class="shop-title">Packs</h2>
-                <p class="shop-description">Ouvrez des packs et essayez d'obtenir vos joueurs préférés.</p>
+                <p class="shop-description">Choisis un pack puis ouvre-le directement dans la page.</p>
             </div>
-            <div id="shopStatus" class="shop-status shop-status--hidden"></div>
         </div>
 
         <div class="packs-container">
             <div class="pack-card" data-type="bronze">
                 <div class="pack-image">
-                    <img src="https://fifautbin.com/wp-content/uploads/2023/12/fifa-rare-bronze-pack-207x300.png" alt="Pack Bronze">
+                    <img src="https://fifautbin.com/wp-content/uploads/2023/12/fifa-rare-bronze-pack-207x300.png" alt="Pack Bronze"
+                         onerror="this.onerror=null; this.src='https://placehold.co/220x300?text=Bronze';">
                 </div>
                 <div class="pack-info">
                     <h3 class="pack-name">Pack Bronze</h3>
                     <p class="pack-description">3 joueurs</p>
-                    <div class="pack-price">
-                        <span>100 crédits</span>
-                    </div>
+                    <div class="pack-price"><span>100 crédits</span></div>
                     <button class="btn-buy" data-pack="bronze">Acheter</button>
                 </div>
             </div>
 
             <div class="pack-card" data-type="silver">
                 <div class="pack-image">
-                    <img src="https://fifautbin.com/wp-content/uploads/2023/12/fifa-rare-silver-pack.png" alt="Pack Argent">
+                    <img src="https://fifautbin.com/wp-content/uploads/2023/12/fifa-rare-silver-pack.png" alt="Pack Argent"
+                         onerror="this.onerror=null; this.src='https://placehold.co/220x300?text=Argent';">
                 </div>
                 <div class="pack-info">
                     <h3 class="pack-name">Pack Argent</h3>
-                    <p class="pack-description">3 bons joueurs</p>
-                    <div class="pack-price">
-                        <span>300 crédits</span>
-                    </div>
+                    <p class="pack-description">3 joueurs</p>
+                    <div class="pack-price"><span>300 crédits</span></div>
                     <button class="btn-buy" data-pack="silver">Acheter</button>
                 </div>
             </div>
 
             <div class="pack-card" data-type="gold">
                 <div class="pack-image">
-                    <img src="https://fifautbin.com/wp-content/uploads/2023/12/fifa-gold-pack.png" alt="Pack Or">
+                    <img src="https://fifautbin.com/wp-content/uploads/2023/12/fifa-gold-pack.png" alt="Pack Or"
+                         onerror="this.onerror=null; this.src='https://placehold.co/220x300?text=Or';">
                 </div>
                 <div class="pack-info">
                     <h3 class="pack-name">Pack Or</h3>
-                    <p class="pack-description">3 très bons joueurs</p>
-                    <div class="pack-price">
-                        <span>600 crédits</span>
-                    </div>
+                    <p class="pack-description">3 joueurs</p>
+                    <div class="pack-price"><span>600 crédits</span></div>
                     <button class="btn-buy" data-pack="gold">Acheter</button>
                 </div>
             </div>
         </div>
 
-        <section class="shop-result">
-            <div class="shop-heading" style="margin-top: 2rem;">
-                <div>
-                    <h3 class="shop-title" style="font-size: 1.5rem;">Dernier pack ouvert</h3>
-                    <p class="shop-description">Les joueurs obtenus s'affichent ici directement dans la page.</p>
+        <section id="packExperience" class="pack-experience hidden" aria-live="polite">
+            <div class="pack-experience__header">
+                <h3 id="packExperienceTitle">Ouverture du pack</h3>
+                <p id="packExperienceText">Préparation...</p>
+            </div>
+
+            <div id="packStage" class="pack-stage stage-idle">
+                <div id="packBox" class="pack-box">
+                    <div class="pack-box__shine"></div>
+                    <div class="pack-box__label">PACK</div>
                 </div>
             </div>
-            <div id="packResult" class="reveal-grid"></div>
+
+            <div id="packRevealGrid" class="reveal-grid"></div>
         </section>
     </section>
 </main>

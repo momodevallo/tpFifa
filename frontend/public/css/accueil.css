@@ -213,3 +213,22 @@ main {
     width: auto;
     display: block;
 }
+
+
+.empty-team {
+    width: 100%;
+    min-height: 420px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    font-size: 1.2rem;
+    font-weight: 700;
+    background: rgba(0, 0, 0, 0.25);
+    border-radius: 12px;
+    padding: 2rem;
+}
+
+.card img {
+    object-fit: cover;
+}

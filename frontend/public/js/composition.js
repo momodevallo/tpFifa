@@ -15,6 +15,12 @@ function escapeHtml(value) {
         .replaceAll("'", '&#39;');
 }
 
+function getPlayerImageSrc(joueur) {
+    if (!joueur) return '';
+    if (joueur.id) return `/player-image/${joueur.id}`;
+    return joueur.imageUrl || '';
+}
+
 function renderBenchCard(carte) {
     const selectedClass = selectedBenchCardId === carte.id ? ' selected' : '';
     return `
@@ -23,7 +29,8 @@ function renderBenchCard(carte) {
              data-poste="${carte.joueur.poste}"
              draggable="true">
             <div class="rating">${carte.joueur.note}</div>
-            <img src="${carte.joueur.imageUrl || ''}" alt="${escapeHtml(carte.joueur.nom)}" onerror="this.style.display='none'">
+            <img src="${getPlayerImageSrc(carte.joueur)}" alt="${escapeHtml(carte.joueur.nom)}"
+                 onerror="this.onerror=null; this.src='https://placehold.co/72x72?text=J';">
             <div class="info">
                 <span class="name">${escapeHtml(carte.joueur.nom)}</span>
                 <span class="pos">${escapeHtml(carte.joueur.poste)}</span>
@@ -40,12 +47,13 @@ function renderSlot(carte, poste) {
     return `
         <div class="slot-card" data-carte-id="${carte.id}" data-poste="${carte.joueur.poste}" draggable="true">
             <div class="rating">${carte.joueur.note}</div>
-            <img src="${carte.joueur.imageUrl || ''}" alt="${escapeHtml(carte.joueur.nom)}" onerror="this.style.display='none'">
+            <img src="${getPlayerImageSrc(carte.joueur)}" alt="${escapeHtml(carte.joueur.nom)}"
+                 onerror="this.onerror=null; this.src='https://placehold.co/56x56?text=J';">
             <div class="info">
                 <span class="name">${escapeHtml(carte.joueur.nom)}</span>
                 <span class="pos">${escapeHtml(carte.joueur.poste)}</span>
             </div>
-            <button class="slot-remove" data-carte-id="${carte.id}" title="Retirer de l'équipe">✕</button>
+            <button class="slot-remove" data-carte-id="${carte.id}" type="button" title="Retirer de l'équipe">Retirer</button>
         </div>
     `;
 }
@@ -81,35 +89,27 @@ function getCardById(cardId) {
 
 function getBenchCards() {
     const teamIds = new Set(getTeamCards().map(c => c.id));
+    return cachedCards.filter(c => !teamIds.has(c.id));
+}
 
-    return cachedCards.filter(c => {
-        if (teamIds.has(c.id)) return false;
-
-        const nom = String(c.joueur.nom || '').toLowerCase();
-        const club = String(c.joueur.club || '').toLowerCase();
-        const poste = String(c.joueur.poste || '');
-        const matchesSearch = !benchSearchValue || nom.includes(benchSearchValue) || club.includes(benchSearchValue);
-        const matchesPoste = benchPositionValue === 'all' || poste === benchPositionValue;
-
-        return matchesSearch && matchesPoste;
+function getFilteredBenchCards() {
+    return getBenchCards().filter(card => {
+        const matchesSearch = !benchSearchValue || card.joueur.nom.toLowerCase().includes(benchSearchValue);
+        const matchesPosition = benchPositionValue === 'all' || card.joueur.poste === benchPositionValue;
+        return matchesSearch && matchesPosition;
     });
 }
 
 function refreshBench() {
-    const benchPlayersNode = document.querySelector('.bench-players');
-    const bench = getBenchCards();
-    const countNode = document.getElementById('benchCount');
-
-    if (countNode) {
-        countNode.textContent = String(bench.length);
-    }
+    const bench = getFilteredBenchCards();
+    const benchNode = document.querySelector('.bench-players');
 
     if (!bench.length) {
-        benchPlayersNode.innerHTML = '<div class="bench-empty">Aucun joueur ne correspond au filtre.</div>';
+        benchNode.innerHTML = '<div class="bench-empty">Aucun joueur ne correspond au filtre.</div>';
         return;
     }
 
-    benchPlayersNode.innerHTML = bench.map(renderBenchCard).join('');
+    benchNode.innerHTML = bench.map(renderBenchCard).join('');
 }
 
 function clearDragState() {
@@ -315,21 +315,6 @@ function handleDragEnd() {
     clearDragState();
 }
 
-function bindFilters() {
-    const searchNode = document.getElementById('benchSearch');
-    const positionNode = document.getElementById('benchPosition');
-
-    searchNode?.addEventListener('input', (event) => {
-        benchSearchValue = String(event.target.value || '').trim().toLowerCase();
-        refreshBench();
-    });
-
-    positionNode?.addEventListener('change', (event) => {
-        benchPositionValue = String(event.target.value || 'all');
-        refreshBench();
-    });
-}
-
 async function loadData() {
     const [teamRes, cardsRes] = await Promise.all([
         fetch('/api/moi/equipe', { credentials: 'same-origin' }),
@@ -372,6 +357,7 @@ async function loadData() {
         justify-content: center;
         gap: 2px;
         cursor: grab;
+        padding: 0.4rem;
       }
       .slot-card img {
         width: 42px;
@@ -401,14 +387,39 @@ async function loadData() {
         border-radius: 999px;
       }
       .slot-remove {
-        position: absolute; top: 4px; right: 4px; border: none; border-radius: 50%;
-        width: 22px; height: 22px; cursor: pointer; background: #e74c3c; color: white;
-        font-size: 0.75rem; line-height: 1;
+        position: absolute;
+        bottom: 4px;
+        left: 50%;
+        transform: translateX(-50%);
+        border: none;
+        border-radius: 999px;
+        padding: 0.2rem 0.45rem;
+        cursor: pointer;
+        background: #e74c3c;
+        color: white;
+        font-size: 0.62rem;
       }
       .slot-placeholder { font-weight: 700; opacity: .8; }
+      .bench-empty {
+        width: 100%;
+        text-align: center;
+        padding: 1rem;
+        background: rgba(255,255,255,0.08);
+        border-radius: 12px;
+      }
     `;
     document.head.appendChild(style);
 })();
+
+document.getElementById('benchSearch')?.addEventListener('input', (event) => {
+    benchSearchValue = event.target.value.trim().toLowerCase();
+    refreshBench();
+});
+
+document.getElementById('benchPosition')?.addEventListener('change', (event) => {
+    benchPositionValue = event.target.value;
+    refreshBench();
+});
 
 document.addEventListener('click', handleDocumentClick);
 document.addEventListener('dragstart', handleDragStart);
@@ -417,5 +428,4 @@ document.addEventListener('dragleave', handleDragLeave);
 document.addEventListener('drop', handleDrop);
 document.addEventListener('dragend', handleDragEnd);
 
-bindFilters();
 loadData().catch(err => console.error(err));

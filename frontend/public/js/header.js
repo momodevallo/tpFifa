@@ -6,45 +6,36 @@
         const style = document.createElement('style');
         style.id = 'tp-header-styles';
         style.textContent = `
-          .simple-brand {
-            font-size: 1.1rem;
-            font-weight: 700;
-            letter-spacing: 0.04em;
-          }
-          .coins-wrap { display:flex; align-items:center; gap:.6rem; }
-          .coins { gap:.35rem; }
-          .coins-label { opacity:.85; }
+          .tp-header-simple { display:flex; justify-content:space-between; align-items:center; gap:1rem; }
+          .tp-header-left { display:flex; align-items:center; gap:1rem; flex-wrap:wrap; }
+          .coins-wrap { display:flex; align-items:center; gap:.8rem; }
+          .coins-wrap .coins { padding:.55rem .9rem; border-radius:999px; background:rgba(0,0,0,.28); font-weight:700; }
           .btn-regenerate {
             background:#f1c40f; color:#222; border:none; border-radius:8px;
-            padding:.45rem .7rem; cursor:pointer; font-weight:700; transition:.2s;
+            padding:.5rem .8rem; cursor:pointer; font-weight:700; transition:.2s;
           }
           .btn-regenerate:hover { transform:scale(1.04); }
+          .logo, .logo-img, .coin-icon { display:none !important; }
         `;
         document.head.appendChild(style);
     }
 
     mount.innerHTML = `
-    <header>
-      <div class="simple-brand">TP FIFA</div>
-
-      <div class="user-info">
+    <header class="tp-header-simple">
+      <div class="tp-header-left">
         <span class="greeting">Salut <strong id="pseudo">Joueur</strong></span>
         <div class="coins-wrap">
-          <div class="coins">
-            <span class="coins-label">Crédits :</span>
-            <span id="money">...</span>
-          </div>
-          <button id="regenCredits" class="btn-regenerate" title="Ajouter des crédits">+ crédits</button>
+          <div class="coins">Crédits : <span id="money">...</span></div>
+          <button id="regenCredits" class="btn-regenerate" type="button">+ crédits</button>
         </div>
       </div>
-
-      <button id="logout" class="btn-logout">Déconnexion</button>
+      <button id="logout" class="btn-logout" type="button">Déconnexion</button>
     </header>
 
     <nav class="main-nav">
       <button class="nav-btn" data-page="accueil" data-href="/accueil.html">Mon Équipe</button>
       <button class="nav-btn" data-page="boutique" data-href="/boutique.html">Boutique</button>
-      <button class="nav-btn" data-page="marche" data-href="/marche.html">Marché des Transferts</button>
+      <button class="nav-btn" data-page="marche" data-href="/marche.html">Marché</button>
       <button class="nav-btn" data-page="composition" data-href="/composition.html">Composition</button>
       <button class="nav-btn" data-page="mes-joueurs" data-href="/mes-joueurs.html">Mes joueurs</button>
     </nav>
@@ -57,10 +48,10 @@
     const p = window.location.pathname;
     const current =
         p.includes('boutique') ? 'boutique' :
-            p.includes('marche') ? 'marche' :
-                p.includes('composition') ? 'composition' :
-                    p.includes('mes-joueurs') ? 'mes-joueurs' :
-                        p.includes('accueil') ? 'accueil' : '';
+        p.includes('marche') ? 'marche' :
+        p.includes('composition') ? 'composition' :
+        p.includes('mes-joueurs') ? 'mes-joueurs' :
+        p.includes('accueil') ? 'accueil' : '';
 
     document.querySelectorAll('.main-nav .nav-btn').forEach((b) => b.classList.remove('active'));
     const activeBtn = document.querySelector(`.main-nav .nav-btn[data-page="${current}"]`);
@@ -70,8 +61,8 @@
         const contentType = (res.headers.get('content-type') || '').toLowerCase();
         if (res.status === 401 || res.status === 403) return 'unauthorized';
         if (res.redirected || res.url.includes('/login')) return 'login-page';
-        if (contentType.includes('text/html')) return 'html';
         if (contentType.includes('application/json')) return 'json';
+        if (contentType.includes('text/html')) return 'html';
         return 'other';
     }
 
@@ -90,9 +81,6 @@
                 if (kind === 'json') {
                     const data = await res.json();
                     message = data?.message || data?.error || message;
-                } else {
-                    const text = await res.text();
-                    if (text) message = text;
                 }
             } catch (_) {}
             throw new Error(message);
@@ -113,7 +101,6 @@
             ]);
 
             if (!user || !credits) return;
-
             document.getElementById('pseudo').textContent = user.pseudo;
             document.getElementById('money').textContent = credits.credits;
         } catch (e) {
@@ -131,7 +118,6 @@
             const data = await safeJsonFetch('/api/moi/credits/regenerer', { method: 'POST' });
             if (data) {
                 document.getElementById('money').textContent = data.credits;
-                alert(`+5000 crédits ajoutés. Nouveau total : ${data.credits}`);
             }
         } catch (e) {
             console.error(e);

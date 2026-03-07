@@ -37,22 +37,21 @@
         </div>
 
         <div class="bench">
-            <div class="bench-header">
+            <div class="bench-head">
                 <div>
                     <h2 class="bench-title">Mes joueurs</h2>
-                    <p class="bench-hint">Glisse une carte vers un poste compatible. Dépose un joueur de l'équipe sur le banc pour le retirer.</p>
+                    <p class="bench-hint">Seuls tes joueurs apparaissent ici. Tu peux chercher et filtrer avant de les placer.</p>
                 </div>
-                <div class="bench-count"><span id="benchCount">0</span> joueur(s) affiché(s)</div>
             </div>
 
             <div class="bench-filters">
-                <input type="text" id="benchSearch" class="bench-input" placeholder="Rechercher un joueur...">
+                <input id="benchSearch" type="text" class="bench-search" placeholder="Rechercher un joueur...">
                 <select id="benchPosition" class="bench-select">
                     <option value="all">Tous les postes</option>
-                    <option value="ATT">Attaquant</option>
-                    <option value="MIL">Milieu</option>
-                    <option value="DEF">Défenseur</option>
-                    <option value="GB">Gardien</option>
+                    <option value="ATT">Attaquants</option>
+                    <option value="MIL">Milieux</option>
+                    <option value="DEF">Défenseurs</option>
+                    <option value="GB">Gardiens</option>
                 </select>
             </div>
 

@@ -1,12 +1,22 @@
 const POLL_MAX_ATTEMPTS = 30;
 const POLL_DELAY_MS = 1000;
 
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function getPlayerImageSrc(joueur) {
+    if (!joueur) return '';
+    if (joueur.id) return `/player-image/${joueur.id}`;
+    return joueur.imageUrl || '';
+}
+
 function getResponseKind(res) {
     const contentType = (res.headers.get('content-type') || '').toLowerCase();
     if (res.status === 401 || res.status === 403) return 'unauthorized';
     if (res.redirected || res.url.includes('/login')) return 'login-page';
-    if (contentType.includes('text/html')) return 'html';
     if (contentType.includes('application/json')) return 'json';
+    if (contentType.includes('text/html')) return 'html';
     return 'other';
 }
 
@@ -19,61 +29,13 @@ async function safeJsonFetch(url, options = {}) {
         return null;
     }
 
-    if (kind !== 'json') {
-        const text = await res.text().catch(() => '');
-        throw new Error(text || `Réponse invalide (${res.status})`);
-    }
-
-    const data = await res.json().catch(() => ({}));
+    const data = kind === 'json' ? await res.json().catch(() => ({})) : {};
 
     if (!res.ok) {
         throw new Error(data?.message || data?.error || `Erreur ${res.status}`);
     }
 
     return data;
-}
-
-function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-function qualityLabel(qualite) {
-    switch ((qualite || '').toLowerCase()) {
-        case 'bronze': return 'Bronze';
-        case 'argent': return 'Argent';
-        case 'or': return 'Or';
-        default: return qualite || 'Inconnue';
-    }
-}
-
-function renderRevealCard(carte) {
-    const joueur = carte?.joueur || {};
-    const qualite = (joueur.qualite || '').toLowerCase();
-    return `
-        <article class="reveal-card reveal-card--${qualite}">
-            <div class="reveal-card__top">
-                <span class="reveal-badge">${qualityLabel(joueur.qualite)}</span>
-                <span class="reveal-note">${joueur.note ?? '-'}</span>
-            </div>
-            <div class="reveal-avatar-wrap">
-                <img class="reveal-avatar" src="${joueur.imageUrl || ''}" alt="${joueur.nom || 'Joueur'}"
-                     onerror="this.closest('.reveal-avatar-wrap').classList.add('reveal-avatar-wrap--fallback'); this.remove();">
-                <span class="reveal-fallback-name">${joueur.nom || 'Joueur'}</span>
-            </div>
-            <div class="reveal-card__body">
-                <h3>${joueur.nom || 'Joueur'}</h3>
-                <p>${joueur.poste || 'POSTE'} · ${joueur.club || 'Club inconnu'}</p>
-                <p>${joueur.nationalite || 'Nationalité inconnue'}</p>
-            </div>
-        </article>
-    `;
-}
-
-function showStatus(message, type = 'info') {
-    const node = document.getElementById('shopStatus');
-    if (!node) return;
-    node.textContent = message;
-    node.className = `shop-status shop-status--${type}`;
 }
 
 function setButtonsDisabled(disabled) {
@@ -83,10 +45,37 @@ function setButtonsDisabled(disabled) {
     });
 }
 
-function renderPackResult(result) {
-    const grid = document.getElementById('packResult');
-    if (!grid) return;
-    grid.innerHTML = (result?.cartes || []).map(renderRevealCard).join('');
+function setExperienceState(stateClass, title, text = '') {
+    const section = document.getElementById('packExperience');
+    const stage = document.getElementById('packStage');
+    const titleNode = document.getElementById('packExperienceTitle');
+    const textNode = document.getElementById('packExperienceText');
+
+    section.classList.remove('hidden');
+    stage.className = `pack-stage ${stateClass}`;
+    titleNode.textContent = title;
+    textNode.textContent = text;
+}
+
+function renderRevealCard(carte) {
+    const joueur = carte?.joueur || {};
+    return `
+        <article class="reveal-card">
+            <div class="reveal-card__top">
+                <span class="reveal-note">${joueur.note ?? '-'}</span>
+                <span class="reveal-position">${joueur.poste || '-'}</span>
+            </div>
+            <div class="reveal-avatar-wrap">
+                <img class="reveal-avatar" src="${getPlayerImageSrc(joueur)}" alt="${joueur.nom || 'Joueur'}"
+                     onerror="this.onerror=null; this.src='https://placehold.co/140x140?text=J';">
+            </div>
+            <div class="reveal-card__body">
+                <h3>${joueur.nom || 'Joueur'}</h3>
+                <p>${joueur.club || 'Club inconnu'}</p>
+                <p>${joueur.nationalite || 'Nationalité inconnue'}</p>
+            </div>
+        </article>
+    `;
 }
 
 async function refreshCredits() {
@@ -116,17 +105,27 @@ async function fetchPackMap() {
 async function waitForPack(uuid) {
     for (let attempt = 0; attempt < POLL_MAX_ATTEMPTS; attempt++) {
         const result = await safeJsonFetch(`/api/packs/${uuid}`);
-
         if (!result) return null;
         if (result.statut === 'READY') return result;
         if (result.statut === 'FAILED') {
             throw new Error(result.message || 'Échec du pack');
         }
-
         await sleep(POLL_DELAY_MS);
     }
 
-    throw new Error('Le pack prend trop de temps à être généré');
+    throw new Error('Le pack met trop de temps à arriver');
+}
+
+async function playPackAnimation(packName) {
+    const revealGrid = document.getElementById('packRevealGrid');
+    revealGrid.innerHTML = '';
+
+    setExperienceState('stage-start', packName, 'Le pack arrive...');
+    await sleep(450);
+    setExperienceState('stage-spin', packName, 'Ouverture en cours...');
+    await sleep(1400);
+    setExperienceState('stage-open', packName, 'Révélation des joueurs...');
+    await sleep(700);
 }
 
 (async () => {
@@ -135,10 +134,9 @@ async function waitForPack(uuid) {
     try {
         packMap = await fetchPackMap();
         await refreshCredits();
-        showStatus('Boutique prête.', 'info');
     } catch (error) {
         console.error(error);
-        showStatus(error.message || 'Impossible de charger la boutique.', 'error');
+        setExperienceState('stage-error', 'Boutique indisponible', error.message || 'Impossible de charger les packs.');
     }
 
     document.querySelectorAll('.btn-buy').forEach(btn => {
@@ -147,29 +145,26 @@ async function waitForPack(uuid) {
             const pack = packMap[key];
 
             if (!pack) {
-                showStatus('Pack introuvable côté serveur.', 'error');
+                setExperienceState('stage-error', 'Erreur', 'Pack introuvable.');
                 return;
             }
 
             setButtonsDisabled(true);
-            showStatus(`Ouverture de ${pack.nom}...`, 'info');
 
             try {
-                const launch = await safeJsonFetch(`/api/packs/${pack.id}/ouvrir`, {
-                    method: 'POST'
-                });
-
+                const launch = await safeJsonFetch(`/api/packs/${pack.id}/ouvrir`, { method: 'POST' });
                 if (!launch?.uuid) {
-                    throw new Error('UUID de suivi manquant');
+                    throw new Error('Impossible de lancer le pack');
                 }
 
+                await playPackAnimation(pack.nom);
                 const result = await waitForPack(launch.uuid);
-                renderPackResult(result);
+                document.getElementById('packRevealGrid').innerHTML = (result.cartes || []).map(renderRevealCard).join('');
+                setExperienceState('stage-open', pack.nom, `${result.cartes?.length || 0} joueur(s) obtenu(s).`);
                 await refreshCredits();
-                showStatus(`${pack.nom} ouvert avec succès.`, 'success');
             } catch (error) {
                 console.error(error);
-                showStatus(error.message || 'Erreur pendant l’ouverture du pack.', 'error');
+                setExperienceState('stage-error', 'Erreur', error.message || 'Erreur pendant l\'ouverture du pack.');
             } finally {
                 setButtonsDisabled(false);
             }

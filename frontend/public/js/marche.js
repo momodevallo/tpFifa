@@ -1,17 +1,54 @@
 let currentUser = null;
+let allListings = [];
+let marketSearch = '';
+let marketPosition = 'all';
 
-function applyMarketFilters() {
-    const query = String(document.getElementById('search')?.value || '').trim().toLowerCase();
-    const position = String(document.getElementById('marketFilterPosition')?.value || 'all');
+function getPlayerImageSrc(joueur) {
+    if (!joueur) return '';
+    if (joueur.id) return `/player-image/${joueur.id}`;
+    return joueur.imageUrl || '';
+}
 
-    document.querySelectorAll('.player-card').forEach(card => {
-        const name = String(card.querySelector('.player-name')?.textContent || '').toLowerCase();
-        const club = String(card.querySelector('.player-club')?.textContent || '').toLowerCase();
-        const cardPosition = String(card.querySelector('.player-position')?.textContent || '');
-        const matchesSearch = !query || name.includes(query) || club.includes(query);
-        const matchesPosition = position === 'all' || cardPosition === position;
-        card.style.display = matchesSearch && matchesPosition ? '' : 'none';
+function renderMarketListings() {
+    const list = document.querySelector('.players-list');
+
+    const filteredListings = allListings.filter(l => {
+        const joueur = l.carte.joueur;
+        const matchesSearch = !marketSearch || joueur.nom.toLowerCase().includes(marketSearch);
+        const matchesPosition = marketPosition === 'all' || joueur.poste === marketPosition;
+        return matchesSearch && matchesPosition;
     });
+
+    if (!filteredListings.length) {
+        list.innerHTML = '<div class="market-empty">Aucun joueur trouvé sur le marché.</div>';
+        return;
+    }
+
+    list.innerHTML = filteredListings.map(l => {
+        const ownListing = currentUser && l.vendeurId === currentUser.id;
+        return `
+        <div class="player-card">
+            <div class="player-image">
+                <img src="${getPlayerImageSrc(l.carte.joueur)}" alt="${l.carte.joueur.nom}"
+                     onerror="this.onerror=null; this.src='https://placehold.co/110x110?text=J';">
+                <div class="player-rating">${l.carte.joueur.note}</div>
+            </div>
+            <div class="player-details">
+                <h3 class="player-name">${l.carte.joueur.nom}</h3>
+                <div class="player-meta">
+                    <span class="player-position">${l.carte.joueur.poste}</span>
+                    <span class="player-club">${l.carte.joueur.club || ''}</span>
+                </div>
+                <div style="font-size: 0.9rem; color: #888;">Vendeur: ${l.vendeurPseudo}</div>
+            </div>
+            <div class="player-actions">
+                <div class="player-price"><span>${l.prix} crédits</span></div>
+                ${ownListing
+                    ? `<button class="btn-buy-player" onclick="removeListing(${l.id})">Retirer</button>`
+                    : `<button class="btn-buy-player" onclick="buyPlayer(${l.id}, ${l.prix})">Acheter</button>`}
+            </div>
+        </div>`;
+    }).join('');
 }
 
 async function loadMarketListings() {
@@ -26,43 +63,8 @@ async function loadMarketListings() {
     }
 
     currentUser = await meRes.json();
-    const data = await marketRes.json();
-
-    const list = document.querySelector('.players-list');
-
-    if (!data.length) {
-        list.innerHTML = '<div class="player-card" style="justify-content:center; align-items:center; min-height: 180px;">Aucune annonce disponible.</div>';
-        return;
-    }
-
-    list.innerHTML = data.map(l => {
-        const ownListing = currentUser && l.vendeurId === currentUser.id;
-        return `
-        <div class="player-card">
-            <div class="player-image">
-                <img src="${l.carte.joueur.imageUrl || ''}" alt="${l.carte.joueur.nom}" onerror="this.style.display='none'">
-                <div class="player-rating">${l.carte.joueur.note}</div>
-            </div>
-            <div class="player-details">
-                <h3 class="player-name">${l.carte.joueur.nom}</h3>
-                <div class="player-meta">
-                    <span class="player-position">${l.carte.joueur.poste}</span>
-                    <span class="player-club">${l.carte.joueur.club || ''}</span>
-                </div>
-                <div style="font-size: 0.9rem; color: #888;">Vendeur : ${l.vendeurPseudo}</div>
-            </div>
-            <div class="player-actions">
-                <div class="player-price">
-                    <span>${l.prix} crédits</span>
-                </div>
-                ${ownListing
-                    ? `<button class="btn-buy-player" onclick="removeListing(${l.id})">Retirer</button>`
-                    : `<button class="btn-buy-player" onclick="buyPlayer(${l.id}, ${l.prix})">Acheter</button>`}
-            </div>
-        </div>`;
-    }).join('');
-
-    applyMarketFilters();
+    allListings = await marketRes.json();
+    renderMarketListings();
 }
 
 async function buyPlayer(annonceId, price) {
@@ -107,7 +109,14 @@ async function removeListing(annonceId) {
     loadMarketListings();
 }
 
-document.getElementById('search')?.addEventListener('input', applyMarketFilters);
-document.getElementById('marketFilterPosition')?.addEventListener('change', applyMarketFilters);
+document.getElementById('search')?.addEventListener('input', (event) => {
+    marketSearch = event.target.value.trim().toLowerCase();
+    renderMarketListings();
+});
+
+document.getElementById('marketPosition')?.addEventListener('change', (event) => {
+    marketPosition = event.target.value;
+    renderMarketListings();
+});
 
 loadMarketListings();

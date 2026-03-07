@@ -1,9 +1,16 @@
+function getPlayerImageSrc(joueur) {
+    if (!joueur) return '';
+    if (joueur.id) return `/player-image/${joueur.id}`;
+    return joueur.imageUrl || '';
+}
+
 function renderCard(carte) {
     return `
         <div class="joueur">
             <div class="card">
                 <div class="rating">${carte.joueur.note}</div>
-                <img src="${carte.joueur.imageUrl || ''}" alt="joueur">
+                <img src="${getPlayerImageSrc(carte.joueur)}" alt="${carte.joueur.nom}"
+                     onerror="this.onerror=null; this.src='https://placehold.co/80x80?text=J';">
                 <div class="nom">${carte.joueur.nom}</div>
                 <div class="poste">${carte.joueur.poste}</div>
             </div>
@@ -11,22 +18,47 @@ function renderCard(carte) {
     `;
 }
 
+function renderLine(className, cards) {
+    return `<div class="ligne ${className}">${cards.map(renderCard).join('')}</div>`;
+}
+
 (async () => {
+    const terrain = document.querySelector('.terrain');
+    if (!terrain) return;
+
     try {
         const res = await fetch('/api/moi/equipe', { credentials: 'same-origin' });
-        if (!res.ok) return;
-        const team = await res.json();
 
-        const terrain = document.querySelector('.terrain');
-        if (!terrain) return;
+        if (res.status === 401) {
+            window.location.href = '/login';
+            return;
+        }
+
+        if (!res.ok) {
+            throw new Error('Impossible de charger l\'équipe');
+        }
+
+        const team = await res.json();
+        const allCards = [
+            ...(team.attaquants || []),
+            ...(team.milieux || []),
+            ...(team.defenseurs || []),
+            ...(team.gardiens || [])
+        ];
+
+        if (!allCards.length) {
+            terrain.innerHTML = '<div class="empty-team">Aucun joueur dans l\'équipe pour le moment.</div>';
+            return;
+        }
 
         terrain.innerHTML = `
-            <div class="ligne attaque">${(team.attaquants || []).map(renderCard).join('')}</div>
-            <div class="ligne milieu">${(team.milieux || []).map(renderCard).join('')}</div>
-            <div class="ligne defense">${(team.defenseurs || []).map(renderCard).join('')}</div>
-            <div class="ligne gardien">${(team.gardiens || []).map(renderCard).join('')}</div>
+            ${renderLine('attaque', team.attaquants || [])}
+            ${renderLine('milieu', team.milieux || [])}
+            ${renderLine('defense', team.defenseurs || [])}
+            ${renderLine('gardien', team.gardiens || [])}
         `;
-    } catch (e) {
-        console.error(e);
+    } catch (error) {
+        console.error(error);
+        terrain.innerHTML = '<div class="empty-team">Impossible de charger l\'équipe.</div>';
     }
 })();
