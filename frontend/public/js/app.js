@@ -1,5 +1,29 @@
 const API = '';
 
+function getFallbackPlayerImageSrc() {
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+    <svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240">
+      <defs>
+        <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#182848" />
+          <stop offset="100%" stop-color="#4b6cb7" />
+        </linearGradient>
+      </defs>
+      <rect width="240" height="240" rx="28" fill="url(#bg)"/>
+      <circle cx="120" cy="88" r="38" fill="rgba(255,255,255,0.88)"/>
+      <path d="M56 206c8-34 32-54 64-54s56 20 64 54" fill="rgba(255,255,255,0.88)"/>
+      <text x="120" y="224" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" fill="rgba(255,255,255,0.96)">JOUEUR</text>
+    </svg>
+  `)}`;
+}
+
+function getPlayerImageSrc(joueur) {
+  if (!joueur) return getFallbackPlayerImageSrc();
+  if (joueur.id) return `/player-image/${joueur.id}`;
+  if (joueur.imageUrl) return joueur.imageUrl;
+  return getFallbackPlayerImageSrc();
+}
+
 function escapeHtml(value) {
   return String(value ?? '')
     .replaceAll('&', '&amp;')
@@ -109,7 +133,7 @@ function renderPlayerCard(carte, extraActions = '') {
         </div>
       </div>
       <div class="player-body">
-        <img class="player-avatar" src="${escapeHtml(j.imageUrl || '')}" alt="${escapeHtml(j.nom)}" onerror="this.style.display='none'" />
+        <img class="player-avatar" src="${escapeHtml(getPlayerImageSrc(j))}" alt="${escapeHtml(j.nom)}" onerror="this.onerror=null; this.src=getFallbackPlayerImageSrc();" />
         <div class="player-actions">
           ${carte.nonEchangeable ? '<span class="badge locked">Non échangeable</span>' : ''}
           ${carte.enEquipe ? '<span class="badge equipe">Dans l\'équipe</span>' : ''}
@@ -144,7 +168,7 @@ function renderMarketplaceCard(annonce, mePseudo) {
         </div>
       </div>
       <div class="player-body">
-        <img class="player-avatar" src="${escapeHtml(carte.joueur.imageUrl || '')}" alt="${escapeHtml(carte.joueur.nom)}" onerror="this.style.display='none'" />
+        <img class="player-avatar" src="${escapeHtml(getPlayerImageSrc(carte.joueur))}" alt="${escapeHtml(carte.joueur.nom)}" onerror="this.onerror=null; this.src=getFallbackPlayerImageSrc();" />
         <div class="player-actions">
           <span class="badge">${annonce.prix} crédits</span>
           ${buyAction}

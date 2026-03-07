@@ -5,6 +5,23 @@ function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+function getFallbackPlayerImageSrc() {
+    return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+        <svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240">
+            <defs>
+                <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stop-color="#182848" />
+                    <stop offset="100%" stop-color="#4b6cb7" />
+                </linearGradient>
+            </defs>
+            <rect width="240" height="240" rx="28" fill="url(#bg)"/>
+            <circle cx="120" cy="88" r="38" fill="rgba(255,255,255,0.88)"/>
+            <path d="M56 206c8-34 32-54 64-54s56 20 64 54" fill="rgba(255,255,255,0.88)"/>
+            <text x="120" y="224" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" fill="rgba(255,255,255,0.96)">JOUEUR</text>
+        </svg>
+    `)}`;
+}
+
 function getPlayerImageSrc(joueur) {
     if (!joueur) return '';
     if (joueur.id) return `/player-image/${joueur.id}`;
@@ -67,7 +84,7 @@ function renderRevealCard(carte) {
             </div>
             <div class="reveal-avatar-wrap">
                 <img class="reveal-avatar" src="${getPlayerImageSrc(joueur)}" alt="${joueur.nom || 'Joueur'}"
-                     onerror="this.onerror=null; this.src='https://placehold.co/140x140?text=J';">
+                     onerror="this.onerror=null; this.src=getFallbackPlayerImageSrc();">
             </div>
             <div class="reveal-card__body">
                 <h3>${joueur.nom || 'Joueur'}</h3>

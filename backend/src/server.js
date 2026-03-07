@@ -2,6 +2,7 @@ import express from 'express';
 import dotenv from 'dotenv';
 import path from 'path';
 import crypto from 'crypto';
+import fs from 'fs/promises';
 import { fileURLToPath } from 'url';
 import pool from './config/db.js';
 
@@ -12,6 +13,7 @@ const PORT = Number(process.env.PORT || 8000);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const publicPath = path.join(__dirname, '../..', 'frontend', 'public');
+const imageCachePath = path.join(__dirname, '..', 'cache', 'player-images');
 
 const sessions = new Map();
 const packJobs = new Map();
@@ -144,15 +146,28 @@ app.get('/health', async (_req, res) => {
 
 app.get('/player-image/:id', async (req, res) => {
   try {
-    const [rows] = await pool.query('SELECT image_url FROM joueurs WHERE id = ?', [req.params.id]);
-    const imageUrl = rows[0]?.image_url;
-    if (!imageUrl) {
-      return res.status(404).send('Image non trouvée');
+    const playerId = Number(req.params.id);
+    if (!playerId) {
+      return sendPlayerPlaceholder(res);
     }
-    return res.redirect(imageUrl);
+
+    const [rows] = await pool.query('SELECT image_url FROM joueurs WHERE id = ?', [playerId]);
+    const imageUrl = String(rows[0]?.image_url || '').trim();
+
+    if (!imageUrl) {
+      return sendPlayerPlaceholder(res);
+    }
+
+    const cache = await getCachedPlayerImage(playerId, imageUrl);
+    if (cache) {
+      res.type(cache.contentType);
+      return res.send(cache.buffer);
+    }
+
+    return sendPlayerPlaceholder(res);
   } catch (error) {
     console.error('Erreur player-image:', error);
-    return res.status(500).send('Erreur image');
+    return sendPlayerPlaceholder(res);
   }
 });
 
@@ -461,6 +476,93 @@ app.use((req, res) => {
 app.listen(PORT, () => {
   console.log(`Serveur Node lancé sur http://localhost:${PORT}`);
 });
+
+
+async function getCachedPlayerImage(playerId, imageUrl) {
+  try {
+    await fs.mkdir(imageCachePath, { recursive: true });
+
+    const extension = getImageExtensionFromUrl(imageUrl);
+    const cacheFilePath = path.join(imageCachePath, `${playerId}.${extension}`);
+
+    try {
+      const buffer = await fs.readFile(cacheFilePath);
+      return {
+        buffer,
+        contentType: getContentTypeFromExtension(extension)
+      };
+    } catch (_error) {}
+
+    const remoteRes = await fetch(imageUrl, {
+      headers: {
+        'user-agent': 'Mozilla/5.0 TP-FIFA/1.0',
+        'accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8'
+      }
+    });
+
+    if (!remoteRes.ok) {
+      console.error('Erreur fetch image distante:', remoteRes.status, remoteRes.statusText, imageUrl);
+      return null;
+    }
+
+    const arrayBuffer = await remoteRes.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    const contentType = remoteRes.headers.get('content-type') || getContentTypeFromExtension(extension);
+
+    await fs.writeFile(cacheFilePath, buffer);
+
+    return {
+      buffer,
+      contentType
+    };
+  } catch (error) {
+    console.error('Erreur cache image joueur:', error);
+    return null;
+  }
+}
+
+function getImageExtensionFromUrl(imageUrl) {
+  const cleanUrl = String(imageUrl || '').split('?')[0].toLowerCase();
+  if (cleanUrl.endsWith('.jpg') || cleanUrl.endsWith('.jpeg')) return 'jpg';
+  if (cleanUrl.endsWith('.webp')) return 'webp';
+  if (cleanUrl.endsWith('.gif')) return 'gif';
+  if (cleanUrl.endsWith('.svg')) return 'svg';
+  return 'png';
+}
+
+function getContentTypeFromExtension(extension) {
+  switch (extension) {
+    case 'jpg':
+    case 'jpeg':
+      return 'image/jpeg';
+    case 'webp':
+      return 'image/webp';
+    case 'gif':
+      return 'image/gif';
+    case 'svg':
+      return 'image/svg+xml';
+    default:
+      return 'image/png';
+  }
+}
+
+function sendPlayerPlaceholder(res) {
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240">
+      <defs>
+        <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#182848" />
+          <stop offset="100%" stop-color="#4b6cb7" />
+        </linearGradient>
+      </defs>
+      <rect width="240" height="240" rx="28" fill="url(#bg)"/>
+      <circle cx="120" cy="88" r="38" fill="rgba(255,255,255,0.88)"/>
+      <path d="M56 206c8-34 32-54 64-54s56 20 64 54" fill="rgba(255,255,255,0.88)"/>
+      <text x="120" y="224" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" fill="rgba(255,255,255,0.96)">JOUEUR</text>
+    </svg>
+  `;
+  res.status(200).type('image/svg+xml').send(svg);
+}
 
 function parseCookies(cookieHeader) {
   return cookieHeader.split(';').reduce((acc, part) => {

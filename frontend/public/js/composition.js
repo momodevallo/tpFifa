@@ -5,6 +5,9 @@ let draggedCardId = null;
 let draggedFromTeam = false;
 let benchSearchValue = '';
 let benchPositionValue = 'all';
+let compositionRefreshTimer = null;
+let compositionRequestInFlight = false;
+const COMPOSITION_REFRESH_MS = 4000;
 
 function escapeHtml(value) {
     return String(value || '')
@@ -13,6 +16,23 @@ function escapeHtml(value) {
         .replaceAll('>', '&gt;')
         .replaceAll('"', '&quot;')
         .replaceAll("'", '&#39;');
+}
+
+function getFallbackPlayerImageSrc() {
+    return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+        <svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240">
+            <defs>
+                <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stop-color="#182848" />
+                    <stop offset="100%" stop-color="#4b6cb7" />
+                </linearGradient>
+            </defs>
+            <rect width="240" height="240" rx="28" fill="url(#bg)"/>
+            <circle cx="120" cy="88" r="38" fill="rgba(255,255,255,0.88)"/>
+            <path d="M56 206c8-34 32-54 64-54s56 20 64 54" fill="rgba(255,255,255,0.88)"/>
+            <text x="120" y="224" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" fill="rgba(255,255,255,0.96)">JOUEUR</text>
+        </svg>
+    `)}`;
 }
 
 function getPlayerImageSrc(joueur) {
@@ -30,7 +50,7 @@ function renderBenchCard(carte) {
              draggable="true">
             <div class="rating">${carte.joueur.note}</div>
             <img src="${getPlayerImageSrc(carte.joueur)}" alt="${escapeHtml(carte.joueur.nom)}"
-                 onerror="this.onerror=null; this.src='https://placehold.co/72x72?text=J';">
+                 onerror="this.onerror=null; this.src=getFallbackPlayerImageSrc();">
             <div class="info">
                 <span class="name">${escapeHtml(carte.joueur.nom)}</span>
                 <span class="pos">${escapeHtml(carte.joueur.poste)}</span>
@@ -48,7 +68,7 @@ function renderSlot(carte, poste) {
         <div class="slot-card" data-carte-id="${carte.id}" data-poste="${carte.joueur.poste}" draggable="true">
             <div class="rating">${carte.joueur.note}</div>
             <img src="${getPlayerImageSrc(carte.joueur)}" alt="${escapeHtml(carte.joueur.nom)}"
-                 onerror="this.onerror=null; this.src='https://placehold.co/56x56?text=J';">
+                 onerror="this.onerror=null; this.src=getFallbackPlayerImageSrc();">
             <div class="info">
                 <span class="name">${escapeHtml(carte.joueur.nom)}</span>
                 <span class="pos">${escapeHtml(carte.joueur.poste)}</span>
@@ -315,27 +335,48 @@ function handleDragEnd() {
     clearDragState();
 }
 
-async function loadData() {
-    const [teamRes, cardsRes] = await Promise.all([
-        fetch('/api/moi/equipe', { credentials: 'same-origin' }),
-        fetch('/api/moi/cartes', { credentials: 'same-origin' })
-    ]);
+async function loadData(options = {}) {
+    const { silent = false } = options;
+    if (compositionRequestInFlight || draggedCardId) return;
+    compositionRequestInFlight = true;
 
-    if (!teamRes.ok || !cardsRes.ok) {
-        if (teamRes.status === 401 || cardsRes.status === 401) {
-            window.location.href = '/login';
+    try {
+        const [teamRes, cardsRes] = await Promise.all([
+            fetch('/api/moi/equipe', { credentials: 'same-origin', cache: 'no-store' }),
+            fetch('/api/moi/cartes', { credentials: 'same-origin', cache: 'no-store' })
+        ]);
+
+        if (!teamRes.ok || !cardsRes.ok) {
+            if (teamRes.status === 401 || cardsRes.status === 401) {
+                window.location.href = '/login';
+            }
+            return;
         }
-        return;
+
+        cachedTeam = await teamRes.json();
+        cachedCards = await cardsRes.json();
+
+        fillSlots(cachedTeam.attaquants || [], '.ligne.attaque .slot');
+        fillSlots(cachedTeam.milieux || [], '.ligne.milieu .slot');
+        fillSlots(cachedTeam.defenseurs || [], '.ligne.defense .slot');
+        fillSlots(cachedTeam.gardiens || [], '.ligne.gardien .slot');
+        refreshBench();
+    } catch (error) {
+        console.error('Erreur chargement composition :', error);
+        if (!silent) alert('Impossible de charger la composition');
+    } finally {
+        compositionRequestInFlight = false;
     }
+}
 
-    cachedTeam = await teamRes.json();
-    cachedCards = await cardsRes.json();
-
-    fillSlots(cachedTeam.attaquants || [], '.ligne.attaque .slot');
-    fillSlots(cachedTeam.milieux || [], '.ligne.milieu .slot');
-    fillSlots(cachedTeam.defenseurs || [], '.ligne.defense .slot');
-    fillSlots(cachedTeam.gardiens || [], '.ligne.gardien .slot');
-    refreshBench();
+function startCompositionAutoRefresh() {
+    if (compositionRefreshTimer) clearInterval(compositionRefreshTimer);
+    compositionRefreshTimer = setInterval(() => loadData({ silent: true }), COMPOSITION_REFRESH_MS);
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) {
+            loadData({ silent: true });
+        }
+    });
 }
 
 (function injectStyles() {
@@ -429,3 +470,4 @@ document.addEventListener('drop', handleDrop);
 document.addEventListener('dragend', handleDragEnd);
 
 loadData().catch(err => console.error(err));
+startCompositionAutoRefresh();

@@ -2,6 +2,26 @@ let currentUser = null;
 let allListings = [];
 let marketSearch = '';
 let marketPosition = 'all';
+let marketRefreshTimer = null;
+let marketRequestInFlight = false;
+const MARKET_REFRESH_MS = 2000;
+
+function getFallbackPlayerImageSrc() {
+    return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+        <svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240">
+            <defs>
+                <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stop-color="#182848" />
+                    <stop offset="100%" stop-color="#4b6cb7" />
+                </linearGradient>
+            </defs>
+            <rect width="240" height="240" rx="28" fill="url(#bg)"/>
+            <circle cx="120" cy="88" r="38" fill="rgba(255,255,255,0.88)"/>
+            <path d="M56 206c8-34 32-54 64-54s56 20 64 54" fill="rgba(255,255,255,0.88)"/>
+            <text x="120" y="224" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" fill="rgba(255,255,255,0.96)">JOUEUR</text>
+        </svg>
+    `)}`;
+}
 
 function getPlayerImageSrc(joueur) {
     if (!joueur) return '';
@@ -30,7 +50,7 @@ function renderMarketListings() {
         <div class="player-card">
             <div class="player-image">
                 <img src="${getPlayerImageSrc(l.carte.joueur)}" alt="${l.carte.joueur.nom}"
-                     onerror="this.onerror=null; this.src='https://placehold.co/110x110?text=J';">
+                     onerror="this.onerror=null; this.src=getFallbackPlayerImageSrc();">
                 <div class="player-rating">${l.carte.joueur.note}</div>
             </div>
             <div class="player-details">
@@ -51,20 +71,46 @@ function renderMarketListings() {
     }).join('');
 }
 
-async function loadMarketListings() {
-    const [marketRes, meRes] = await Promise.all([
-        fetch('/api/marketplace', { credentials: 'same-origin' }),
-        fetch('/api/moi', { credentials: 'same-origin' })
-    ]);
+async function loadMarketListings(options = {}) {
+    const { silent = false } = options;
 
-    if (!marketRes.ok || !meRes.ok) {
-        if (marketRes.status === 401 || meRes.status === 401) window.location.href = '/login';
-        return;
+    if (marketRequestInFlight) return;
+    marketRequestInFlight = true;
+
+    try {
+        const [marketRes, meRes] = await Promise.all([
+            fetch('/api/marketplace', { credentials: 'same-origin', cache: 'no-store' }),
+            fetch('/api/moi', { credentials: 'same-origin', cache: 'no-store' })
+        ]);
+
+        if (!marketRes.ok || !meRes.ok) {
+            if (marketRes.status === 401 || meRes.status === 401) window.location.href = '/login';
+            return;
+        }
+
+        currentUser = await meRes.json();
+        allListings = await marketRes.json();
+        renderMarketListings();
+    } catch (error) {
+        console.error('Erreur chargement marché :', error);
+        if (!silent) {
+            const list = document.querySelector('.players-list');
+            if (list) list.innerHTML = '<div class="market-empty">Impossible de charger le marché.</div>';
+        }
+    } finally {
+        marketRequestInFlight = false;
     }
+}
 
-    currentUser = await meRes.json();
-    allListings = await marketRes.json();
-    renderMarketListings();
+function startMarketAutoRefresh() {
+    if (marketRefreshTimer) clearInterval(marketRefreshTimer);
+    marketRefreshTimer = setInterval(() => loadMarketListings({ silent: true }), MARKET_REFRESH_MS);
+
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) {
+            loadMarketListings({ silent: true });
+        }
+    });
 }
 
 async function buyPlayer(annonceId, price) {
@@ -83,7 +129,7 @@ async function buyPlayer(annonceId, price) {
     }
 
     alert(data?.message || 'Achat effectué');
-    loadMarketListings();
+    loadMarketListings({ silent: true });
     try {
         const credits = await (await fetch('/api/moi/credits', { credentials: 'same-origin' })).json();
         document.getElementById('money').textContent = credits.credits;
@@ -106,7 +152,7 @@ async function removeListing(annonceId) {
     }
 
     alert(data?.message || 'Annonce supprimée');
-    loadMarketListings();
+    loadMarketListings({ silent: true });
 }
 
 document.getElementById('search')?.addEventListener('input', (event) => {
@@ -120,3 +166,4 @@ document.getElementById('marketPosition')?.addEventListener('change', (event) =>
 });
 
 loadMarketListings();
+startMarketAutoRefresh();
