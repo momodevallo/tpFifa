@@ -269,8 +269,74 @@ main {
 }
 
 
+
+.bench-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.bench-count {
+    background: rgba(255, 255, 255, 0.12);
+    padding: 0.6rem 0.9rem;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    white-space: nowrap;
+}
+
+.bench-filters {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 220px;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.bench-input,
+.bench-select {
+    width: 100%;
+    padding: 0.85rem 1rem;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: rgba(255, 255, 255, 0.12);
+    color: white;
+    outline: none;
+}
+
+.bench-input::placeholder {
+    color: rgba(255, 255, 255, 0.75);
+}
+
+.bench-select option {
+    color: #111;
+}
+
+.bench-empty {
+    width: 100%;
+    padding: 1rem;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.08);
+    text-align: center;
+    opacity: 0.9;
+}
+
 .bench-hint {
     margin-bottom: 0.8rem;
     opacity: 0.9;
     font-size: 0.95rem;
+}
+
+
+.logo { display: none; }
+.coins .coin-icon { display: none; }
+
+@media (max-width: 768px) {
+    .bench-header {
+        flex-direction: column;
+    }
+
+    .bench-filters {
+        grid-template-columns: 1fr;
+    }
 }

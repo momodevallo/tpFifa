@@ -1,11 +1,11 @@
 -- phpMyAdmin SQL Dump
--- version 5.2.3
+-- version 5.2.1
 -- https://www.phpmyadmin.net/
 --
--- Hôte : localhost
--- Généré le : lun. 16 fév. 2026 à 10:18
--- Version du serveur : 11.8.3-MariaDB-0+deb13u1 from Debian
--- Version de PHP : 8.4.16
+-- Hôte : 127.0.0.1:3306
+-- Généré le : ven. 06 mars 2026 à 21:59
+-- Version du serveur : 9.1.0
+-- Version de PHP : 8.3.14
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -27,12 +27,16 @@ SET time_zone = "+00:00";
 -- Structure de la table `annonces_marche`
 --
 
-CREATE TABLE `annonces_marche` (
-  `id` bigint(20) NOT NULL,
-  `carte_id` bigint(20) NOT NULL,
-  `vendeur_id` bigint(20) NOT NULL,
-  `prix` bigint(20) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
+DROP TABLE IF EXISTS `annonces_marche`;
+CREATE TABLE IF NOT EXISTS `annonces_marche` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `carte_id` bigint NOT NULL,
+  `vendeur_id` bigint NOT NULL,
+  `prix` bigint NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `carte_id` (`carte_id`),
+  KEY `vendeur_id` (`vendeur_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -40,12 +44,16 @@ CREATE TABLE `annonces_marche` (
 -- Structure de la table `cartes`
 --
 
-CREATE TABLE `cartes` (
-  `id` bigint(20) NOT NULL,
-  `utilisateur_id` bigint(20) DEFAULT NULL,
-  `joueur_id` bigint(20) NOT NULL,
-  `non_echangeable` tinyint(1) NOT NULL DEFAULT 0
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
+DROP TABLE IF EXISTS `cartes`;
+CREATE TABLE IF NOT EXISTS `cartes` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `utilisateur_id` bigint DEFAULT NULL,
+  `joueur_id` bigint NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_user_joueur` (`utilisateur_id`,`joueur_id`),
+  KEY `utilisateur_id` (`utilisateur_id`),
+  KEY `joueur_id` (`joueur_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -53,10 +61,12 @@ CREATE TABLE `cartes` (
 -- Structure de la table `equipes`
 --
 
-CREATE TABLE `equipes` (
-  `utilisateur_id` bigint(20) NOT NULL,
-  `formation` varchar(10) NOT NULL DEFAULT '4-4-2'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
+DROP TABLE IF EXISTS `equipes`;
+CREATE TABLE IF NOT EXISTS `equipes` (
+  `utilisateur_id` bigint NOT NULL,
+  `formation` varchar(10) COLLATE utf8mb4_general_ci NOT NULL DEFAULT '4-4-2',
+  PRIMARY KEY (`utilisateur_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -64,11 +74,15 @@ CREATE TABLE `equipes` (
 -- Structure de la table `equipes_cartes`
 --
 
-CREATE TABLE `equipes_cartes` (
-  `utilisateur_id` bigint(20) NOT NULL,
-  `poste` enum('GB','DEF','MIL','ATT') NOT NULL,
-  `carte_id` bigint(20) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
+DROP TABLE IF EXISTS `equipes_cartes`;
+CREATE TABLE IF NOT EXISTS `equipes_cartes` (
+  `utilisateur_id` bigint NOT NULL,
+  `poste` enum('GB','DEF','MIL','ATT') COLLATE utf8mb4_general_ci NOT NULL,
+  `carte_id` bigint NOT NULL,
+  PRIMARY KEY (`utilisateur_id`,`carte_id`),
+  KEY `fk_ec_carte` (`carte_id`),
+  KEY `poste` (`poste`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -76,16 +90,21 @@ CREATE TABLE `equipes_cartes` (
 -- Structure de la table `joueurs`
 --
 
-CREATE TABLE `joueurs` (
-  `id` bigint(20) NOT NULL,
+DROP TABLE IF EXISTS `joueurs`;
+CREATE TABLE IF NOT EXISTS `joueurs` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
   `nom` varchar(80) NOT NULL,
   `poste` enum('GB','DEF','MIL','ATT') NOT NULL,
-  `note` tinyint(4) NOT NULL,
+  `note` tinyint NOT NULL,
   `qualite` enum('bronze','argent','or') NOT NULL,
   `image_url` varchar(255) NOT NULL,
   `nationalite` varchar(60) DEFAULT NULL,
-  `club` varchar(80) DEFAULT NULL
-) ;
+  `club` varchar(80) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `qualite` (`qualite`),
+  KEY `note` (`note`),
+  KEY `poste` (`poste`)
+) ENGINE=InnoDB AUTO_INCREMENT=18411 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Déchargement des données de la table `joueurs`
@@ -18553,10 +18572,12 @@ INSERT INTO `joueurs` (`id`, `nom`, `poste`, `note`, `qualite`, `image_url`, `na
 -- Structure de la table `portefeuilles`
 --
 
-CREATE TABLE `portefeuilles` (
-  `utilisateur_id` bigint(20) NOT NULL,
-  `credits` bigint(20) NOT NULL DEFAULT 0
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
+DROP TABLE IF EXISTS `portefeuilles`;
+CREATE TABLE IF NOT EXISTS `portefeuilles` (
+  `utilisateur_id` bigint NOT NULL,
+  `credits` bigint NOT NULL DEFAULT '0',
+  PRIMARY KEY (`utilisateur_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -18564,15 +18585,18 @@ CREATE TABLE `portefeuilles` (
 -- Structure de la table `types_packs`
 --
 
-CREATE TABLE `types_packs` (
-  `id` bigint(20) NOT NULL,
+DROP TABLE IF EXISTS `types_packs`;
+CREATE TABLE IF NOT EXISTS `types_packs` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
   `nom` varchar(40) NOT NULL,
-  `prix` bigint(20) NOT NULL,
-  `nb_cartes` tinyint(4) NOT NULL DEFAULT 3,
-  `pct_bronze` tinyint(4) NOT NULL,
-  `pct_argent` tinyint(4) NOT NULL,
-  `pct_or` tinyint(4) NOT NULL
-) ;
+  `prix` bigint NOT NULL,
+  `nb_cartes` tinyint NOT NULL DEFAULT '3',
+  `pct_bronze` tinyint NOT NULL,
+  `pct_argent` tinyint NOT NULL,
+  `pct_or` tinyint NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `nom` (`nom`)
+) ENGINE=MyISAM AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Déchargement des données de la table `types_packs`
@@ -18589,116 +18613,21 @@ INSERT INTO `types_packs` (`id`, `nom`, `prix`, `nb_cartes`, `pct_bronze`, `pct_
 -- Structure de la table `utilisateurs`
 --
 
-CREATE TABLE `utilisateurs` (
-  `id` bigint(20) NOT NULL,
-  `pseudo` varchar(40) NOT NULL,
-  `mdp` varchar(255) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
+DROP TABLE IF EXISTS `utilisateurs`;
+CREATE TABLE IF NOT EXISTS `utilisateurs` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `pseudo` varchar(40) COLLATE utf8mb4_general_ci NOT NULL,
+  `mdp` varchar(255) COLLATE utf8mb4_general_ci NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `pseudo` (`pseudo`)
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Déchargement des données de la table `utilisateurs`
 --
 
 INSERT INTO `utilisateurs` (`id`, `pseudo`, `mdp`) VALUES
-(2, 'momodevallo', '$2b$10$11E21pGgCOIWJNSYc6doFekjLPnFAwP.ZbM0kFaPfnaELRfxL238S');
-
---
--- Index pour les tables déchargées
---
-
---
--- Index pour la table `annonces_marche`
---
-ALTER TABLE `annonces_marche`
-  ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `carte_id` (`carte_id`),
-  ADD KEY `vendeur_id` (`vendeur_id`);
-
---
--- Index pour la table `cartes`
---
-ALTER TABLE `cartes`
-  ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `uq_user_joueur` (`utilisateur_id`,`joueur_id`),
-  ADD KEY `utilisateur_id` (`utilisateur_id`),
-  ADD KEY `joueur_id` (`joueur_id`);
-
---
--- Index pour la table `equipes`
---
-ALTER TABLE `equipes`
-  ADD PRIMARY KEY (`utilisateur_id`);
-
---
--- Index pour la table `equipes_cartes`
---
-ALTER TABLE `equipes_cartes`
-  ADD PRIMARY KEY (`utilisateur_id`,`carte_id`),
-  ADD KEY `fk_ec_carte` (`carte_id`),
-  ADD KEY `poste` (`poste`);
-
---
--- Index pour la table `joueurs`
---
-ALTER TABLE `joueurs`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `qualite` (`qualite`),
-  ADD KEY `note` (`note`),
-  ADD KEY `poste` (`poste`);
-
---
--- Index pour la table `portefeuilles`
---
-ALTER TABLE `portefeuilles`
-  ADD PRIMARY KEY (`utilisateur_id`);
-
---
--- Index pour la table `types_packs`
---
-ALTER TABLE `types_packs`
-  ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `nom` (`nom`);
-
---
--- Index pour la table `utilisateurs`
---
-ALTER TABLE `utilisateurs`
-  ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `pseudo` (`pseudo`);
-
---
--- AUTO_INCREMENT pour les tables déchargées
---
-
---
--- AUTO_INCREMENT pour la table `annonces_marche`
---
-ALTER TABLE `annonces_marche`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT pour la table `cartes`
---
-ALTER TABLE `cartes`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT pour la table `joueurs`
---
-ALTER TABLE `joueurs`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT pour la table `types_packs`
---
-ALTER TABLE `types_packs`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT pour la table `utilisateurs`
---
-ALTER TABLE `utilisateurs`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+(2, 'momodevallo', '$2b$10$Q1xQKqTsRBVMVrk1631QZOQKF7F.hIyO5I9c2hem6nodjIeoLTyve');
 
 --
 -- Contraintes pour les tables déchargées

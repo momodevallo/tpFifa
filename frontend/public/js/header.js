@@ -1,12 +1,19 @@
 (function () {
-    const mount = document.getElementById("tp-header");
+    const mount = document.getElementById('tp-header');
     if (!mount) return;
 
     if (!document.getElementById('tp-header-styles')) {
         const style = document.createElement('style');
         style.id = 'tp-header-styles';
         style.textContent = `
+          .simple-brand {
+            font-size: 1.1rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+          }
           .coins-wrap { display:flex; align-items:center; gap:.6rem; }
+          .coins { gap:.35rem; }
+          .coins-label { opacity:.85; }
           .btn-regenerate {
             background:#f1c40f; color:#222; border:none; border-radius:8px;
             padding:.45rem .7rem; cursor:pointer; font-weight:700; transition:.2s;
@@ -18,17 +25,13 @@
 
     mount.innerHTML = `
     <header>
-      <div class="logo">
-        <img src="/img/logo.png" alt="TP FIFA" class="logo-img">
-      </div>
+      <div class="simple-brand">TP FIFA</div>
 
       <div class="user-info">
         <span class="greeting">Salut <strong id="pseudo">Joueur</strong></span>
         <div class="coins-wrap">
           <div class="coins">
-            <img class="coin-icon"
-              src="https://gmedia.playstation.com/is/image/SIEPDC/fifa-ultimate-team-coins-01-ps4-ps5-en-09sep21?$native--t$"
-              alt="coins">
+            <span class="coins-label">Crédits :</span>
             <span id="money">...</span>
           </div>
           <button id="regenCredits" class="btn-regenerate" title="Ajouter des crédits">+ crédits</button>
@@ -47,21 +50,21 @@
     </nav>
   `;
 
-    document.querySelectorAll(".main-nav .nav-btn[data-href]").forEach((btn) => {
-        btn.addEventListener("click", () => (window.location.href = btn.dataset.href));
+    document.querySelectorAll('.main-nav .nav-btn[data-href]').forEach((btn) => {
+        btn.addEventListener('click', () => (window.location.href = btn.dataset.href));
     });
 
     const p = window.location.pathname;
     const current =
-        p.includes("boutique") ? "boutique" :
-            p.includes("marche") ? "marche" :
-                p.includes("composition") ? "composition" :
-                    p.includes("mes-joueurs") ? "mes-joueurs" :
-                        p.includes("accueil") ? "accueil" : "";
+        p.includes('boutique') ? 'boutique' :
+            p.includes('marche') ? 'marche' :
+                p.includes('composition') ? 'composition' :
+                    p.includes('mes-joueurs') ? 'mes-joueurs' :
+                        p.includes('accueil') ? 'accueil' : '';
 
-    document.querySelectorAll(".main-nav .nav-btn").forEach((b) => b.classList.remove("active"));
+    document.querySelectorAll('.main-nav .nav-btn').forEach((b) => b.classList.remove('active'));
     const activeBtn = document.querySelector(`.main-nav .nav-btn[data-page="${current}"]`);
-    if (activeBtn) activeBtn.classList.add("active");
+    if (activeBtn) activeBtn.classList.add('active');
 
     function getResponseKind(res) {
         const contentType = (res.headers.get('content-type') || '').toLowerCase();
@@ -138,9 +141,9 @@
         }
     });
 
-    const logoutBtn = document.getElementById("logout");
+    const logoutBtn = document.getElementById('logout');
     if (logoutBtn) {
-        logoutBtn.addEventListener("click", async () => {
+        logoutBtn.addEventListener('click', async () => {
             await fetch('/logout', { method: 'POST', credentials: 'same-origin' });
             window.location.href = '/login?logout';
         });

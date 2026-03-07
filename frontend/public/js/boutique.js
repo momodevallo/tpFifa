@@ -83,48 +83,10 @@ function setButtonsDisabled(disabled) {
     });
 }
 
-function openOverlay(packName) {
-    const overlay = document.getElementById('packOverlay');
-    const stage = document.getElementById('packStage');
-    const visual = document.getElementById('packVisual');
-    const revealGrid = document.getElementById('packRevealGrid');
-    const subtitle = document.getElementById('packOverlaySubtitle');
-
-    overlay.classList.remove('hidden');
-    overlay.setAttribute('aria-hidden', 'false');
-    stage.className = 'pack-stage is-waiting';
-    visual.className = 'pack-visual';
-    revealGrid.innerHTML = '';
-    subtitle.textContent = `Préparation de ${packName}...`;
-}
-
-function closeOverlay() {
-    const overlay = document.getElementById('packOverlay');
-    overlay.classList.add('hidden');
-    overlay.setAttribute('aria-hidden', 'true');
-}
-
-function animatePending(packName, uuid) {
-    const stage = document.getElementById('packStage');
-    const subtitle = document.getElementById('packOverlaySubtitle');
-    stage.className = 'pack-stage is-spinning';
-    subtitle.textContent = `${packName} lancé. Suivi REST en cours (${uuid.slice(0, 8)}...).`;
-}
-
-async function animateReveal(result) {
-    const stage = document.getElementById('packStage');
-    const visual = document.getElementById('packVisual');
-    const subtitle = document.getElementById('packOverlaySubtitle');
-    const revealGrid = document.getElementById('packRevealGrid');
-
-    subtitle.textContent = 'Le pack est prêt. Révélation des joueurs...';
-    stage.className = 'pack-stage is-opening';
-    visual.classList.add('is-opening');
-    await sleep(1200);
-
-    stage.className = 'pack-stage is-open';
-    revealGrid.innerHTML = (result.cartes || []).map(renderRevealCard).join('');
-    subtitle.textContent = `${result.cartes?.length || 0} joueur(s) obtenu(s).`;
+function renderPackResult(result) {
+    const grid = document.getElementById('packResult');
+    if (!grid) return;
+    grid.innerHTML = (result?.cartes || []).map(renderRevealCard).join('');
 }
 
 async function refreshCredits() {
@@ -151,7 +113,7 @@ async function fetchPackMap() {
     return map;
 }
 
-async function waitForPack(uuid, packName) {
+async function waitForPack(uuid) {
     for (let attempt = 0; attempt < POLL_MAX_ATTEMPTS; attempt++) {
         const result = await safeJsonFetch(`/api/packs/${uuid}`);
 
@@ -161,7 +123,6 @@ async function waitForPack(uuid, packName) {
             throw new Error(result.message || 'Échec du pack');
         }
 
-        animatePending(packName, uuid);
         await sleep(POLL_DELAY_MS);
     }
 
@@ -174,16 +135,11 @@ async function waitForPack(uuid, packName) {
     try {
         packMap = await fetchPackMap();
         await refreshCredits();
-        showStatus('Boutique prête. Choisis un pack pour lancer l’ouverture.', 'info');
+        showStatus('Boutique prête.', 'info');
     } catch (error) {
         console.error(error);
         showStatus(error.message || 'Impossible de charger la boutique.', 'error');
     }
-
-    document.getElementById('closePackOverlay')?.addEventListener('click', closeOverlay);
-    document.getElementById('packOverlay')?.addEventListener('click', (event) => {
-        if (event.target.id === 'packOverlay') closeOverlay();
-    });
 
     document.querySelectorAll('.btn-buy').forEach(btn => {
         btn.addEventListener('click', async (event) => {
@@ -196,7 +152,6 @@ async function waitForPack(uuid, packName) {
             }
 
             setButtonsDisabled(true);
-            openOverlay(pack.nom);
             showStatus(`Ouverture de ${pack.nom}...`, 'info');
 
             try {
@@ -208,15 +163,12 @@ async function waitForPack(uuid, packName) {
                     throw new Error('UUID de suivi manquant');
                 }
 
-                animatePending(pack.nom, launch.uuid);
-                const result = await waitForPack(launch.uuid, pack.nom);
-                await animateReveal(result);
+                const result = await waitForPack(launch.uuid);
+                renderPackResult(result);
                 await refreshCredits();
-                showStatus(`${pack.nom} ouvert avec succès. ${result.cartes?.length || 0} joueur(s) ajouté(s).`, 'success');
+                showStatus(`${pack.nom} ouvert avec succès.`, 'success');
             } catch (error) {
                 console.error(error);
-                document.getElementById('packOverlaySubtitle').textContent = error.message || 'Erreur pendant l’ouverture du pack.';
-                document.getElementById('packStage').className = 'pack-stage is-error';
                 showStatus(error.message || 'Erreur pendant l’ouverture du pack.', 'error');
             } finally {
                 setButtonsDisabled(false);

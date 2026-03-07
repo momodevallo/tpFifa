@@ -1,5 +1,19 @@
 let currentUser = null;
 
+function applyMarketFilters() {
+    const query = String(document.getElementById('search')?.value || '').trim().toLowerCase();
+    const position = String(document.getElementById('marketFilterPosition')?.value || 'all');
+
+    document.querySelectorAll('.player-card').forEach(card => {
+        const name = String(card.querySelector('.player-name')?.textContent || '').toLowerCase();
+        const club = String(card.querySelector('.player-club')?.textContent || '').toLowerCase();
+        const cardPosition = String(card.querySelector('.player-position')?.textContent || '');
+        const matchesSearch = !query || name.includes(query) || club.includes(query);
+        const matchesPosition = position === 'all' || cardPosition === position;
+        card.style.display = matchesSearch && matchesPosition ? '' : 'none';
+    });
+}
+
 async function loadMarketListings() {
     const [marketRes, meRes] = await Promise.all([
         fetch('/api/marketplace', { credentials: 'same-origin' }),
@@ -15,12 +29,18 @@ async function loadMarketListings() {
     const data = await marketRes.json();
 
     const list = document.querySelector('.players-list');
+
+    if (!data.length) {
+        list.innerHTML = '<div class="player-card" style="justify-content:center; align-items:center; min-height: 180px;">Aucune annonce disponible.</div>';
+        return;
+    }
+
     list.innerHTML = data.map(l => {
         const ownListing = currentUser && l.vendeurId === currentUser.id;
         return `
         <div class="player-card">
             <div class="player-image">
-                <img src="${l.carte.joueur.imageUrl || ''}" alt="${l.carte.joueur.nom}">
+                <img src="${l.carte.joueur.imageUrl || ''}" alt="${l.carte.joueur.nom}" onerror="this.style.display='none'">
                 <div class="player-rating">${l.carte.joueur.note}</div>
             </div>
             <div class="player-details">
@@ -29,12 +49,11 @@ async function loadMarketListings() {
                     <span class="player-position">${l.carte.joueur.poste}</span>
                     <span class="player-club">${l.carte.joueur.club || ''}</span>
                 </div>
-                <div style="font-size: 0.9rem; color: #888;">Vendeur: ${l.vendeurPseudo}</div>
+                <div style="font-size: 0.9rem; color: #888;">Vendeur : ${l.vendeurPseudo}</div>
             </div>
             <div class="player-actions">
                 <div class="player-price">
-                    <img class="coin-small" src="https://gmedia.playstation.com/is/image/SIEPDC/fifa-ultimate-team-coins-01-ps4-ps5-en-09sep21?$native--t$" alt="coins">
-                    <span>${l.prix}</span>
+                    <span>${l.prix} crédits</span>
                 </div>
                 ${ownListing
                     ? `<button class="btn-buy-player" onclick="removeListing(${l.id})">Retirer</button>`
@@ -42,6 +61,8 @@ async function loadMarketListings() {
             </div>
         </div>`;
     }).join('');
+
+    applyMarketFilters();
 }
 
 async function buyPlayer(annonceId, price) {
@@ -86,17 +107,7 @@ async function removeListing(annonceId) {
     loadMarketListings();
 }
 
-document.getElementById('search')?.addEventListener('input', (e) => {
-    const query = e.target.value.toLowerCase();
-    document.querySelectorAll('.player-card').forEach(card => {
-        card.style.display = card.querySelector('.player-name').textContent.toLowerCase().includes(query) ? '' : 'none';
-    });
-});
-
-document.querySelector('.filter-select')?.addEventListener('change', (e) => {
-    document.querySelectorAll('.player-card').forEach(card => {
-        card.style.display = e.target.value === 'all' || card.querySelector('.player-position').textContent === e.target.value ? '' : 'none';
-    });
-});
+document.getElementById('search')?.addEventListener('input', applyMarketFilters);
+document.getElementById('marketFilterPosition')?.addEventListener('change', applyMarketFilters);
 
 loadMarketListings();

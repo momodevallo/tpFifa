@@ -3,6 +3,8 @@ let cachedCards = [];
 let cachedTeam = null;
 let draggedCardId = null;
 let draggedFromTeam = false;
+let benchSearchValue = '';
+let benchPositionValue = 'all';
 
 function escapeHtml(value) {
     return String(value || '')
@@ -21,7 +23,7 @@ function renderBenchCard(carte) {
              data-poste="${carte.joueur.poste}"
              draggable="true">
             <div class="rating">${carte.joueur.note}</div>
-            <img src="${carte.joueur.imageUrl || ''}" alt="${escapeHtml(carte.joueur.nom)}">
+            <img src="${carte.joueur.imageUrl || ''}" alt="${escapeHtml(carte.joueur.nom)}" onerror="this.style.display='none'">
             <div class="info">
                 <span class="name">${escapeHtml(carte.joueur.nom)}</span>
                 <span class="pos">${escapeHtml(carte.joueur.poste)}</span>
@@ -38,7 +40,7 @@ function renderSlot(carte, poste) {
     return `
         <div class="slot-card" data-carte-id="${carte.id}" data-poste="${carte.joueur.poste}" draggable="true">
             <div class="rating">${carte.joueur.note}</div>
-            <img src="${carte.joueur.imageUrl || ''}" alt="${escapeHtml(carte.joueur.nom)}">
+            <img src="${carte.joueur.imageUrl || ''}" alt="${escapeHtml(carte.joueur.nom)}" onerror="this.style.display='none'">
             <div class="info">
                 <span class="name">${escapeHtml(carte.joueur.nom)}</span>
                 <span class="pos">${escapeHtml(carte.joueur.poste)}</span>
@@ -77,10 +79,37 @@ function getCardById(cardId) {
         || null;
 }
 
-function refreshBench() {
+function getBenchCards() {
     const teamIds = new Set(getTeamCards().map(c => c.id));
-    const bench = cachedCards.filter(c => !teamIds.has(c.id));
-    document.querySelector('.bench-players').innerHTML = bench.map(renderBenchCard).join('');
+
+    return cachedCards.filter(c => {
+        if (teamIds.has(c.id)) return false;
+
+        const nom = String(c.joueur.nom || '').toLowerCase();
+        const club = String(c.joueur.club || '').toLowerCase();
+        const poste = String(c.joueur.poste || '');
+        const matchesSearch = !benchSearchValue || nom.includes(benchSearchValue) || club.includes(benchSearchValue);
+        const matchesPoste = benchPositionValue === 'all' || poste === benchPositionValue;
+
+        return matchesSearch && matchesPoste;
+    });
+}
+
+function refreshBench() {
+    const benchPlayersNode = document.querySelector('.bench-players');
+    const bench = getBenchCards();
+    const countNode = document.getElementById('benchCount');
+
+    if (countNode) {
+        countNode.textContent = String(bench.length);
+    }
+
+    if (!bench.length) {
+        benchPlayersNode.innerHTML = '<div class="bench-empty">Aucun joueur ne correspond au filtre.</div>';
+        return;
+    }
+
+    benchPlayersNode.innerHTML = bench.map(renderBenchCard).join('');
 }
 
 function clearDragState() {
@@ -286,6 +315,21 @@ function handleDragEnd() {
     clearDragState();
 }
 
+function bindFilters() {
+    const searchNode = document.getElementById('benchSearch');
+    const positionNode = document.getElementById('benchPosition');
+
+    searchNode?.addEventListener('input', (event) => {
+        benchSearchValue = String(event.target.value || '').trim().toLowerCase();
+        refreshBench();
+    });
+
+    positionNode?.addEventListener('change', (event) => {
+        benchPositionValue = String(event.target.value || 'all');
+        refreshBench();
+    });
+}
+
 async function loadData() {
     const [teamRes, cardsRes] = await Promise.all([
         fetch('/api/moi/equipe', { credentials: 'same-origin' }),
@@ -373,4 +417,5 @@ document.addEventListener('dragleave', handleDragLeave);
 document.addEventListener('drop', handleDrop);
 document.addEventListener('dragend', handleDragEnd);
 
+bindFilters();
 loadData().catch(err => console.error(err));
