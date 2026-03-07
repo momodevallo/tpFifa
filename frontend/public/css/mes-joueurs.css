@@ -312,3 +312,180 @@ main {
 .logo-img {
     display: none !important;
 }
+
+body.modal-open {
+    overflow: hidden;
+}
+
+.sell-modal.hidden {
+    display: none;
+}
+
+.sell-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+}
+
+.sell-modal__backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+}
+
+.sell-modal__dialog {
+    position: relative;
+    width: min(92vw, 460px);
+    margin: 8vh auto 0;
+    background: linear-gradient(180deg, #1e2b5c 0%, #11182f 100%);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 18px;
+    box-shadow: 0 24px 50px rgba(0, 0, 0, 0.45);
+    padding: 1.2rem;
+    color: white;
+    z-index: 1;
+    animation: sellModalIn 0.18s ease-out;
+}
+
+.sell-modal__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.sell-modal__header h3 {
+    margin: 0;
+    font-size: 1.25rem;
+}
+
+.sell-modal__close {
+    border: none;
+    background: rgba(255, 255, 255, 0.08);
+    color: white;
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 1.3rem;
+    line-height: 1;
+}
+
+.sell-modal__close:hover {
+    background: rgba(255, 255, 255, 0.16);
+}
+
+.sell-modal__player {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    padding: 0.9rem;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.08);
+    margin-bottom: 1rem;
+}
+
+.sell-modal__player img {
+    width: 64px;
+    height: 64px;
+    border-radius: 14px;
+    object-fit: cover;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.sell-modal__player-main {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.sell-modal__player-name {
+    font-weight: 700;
+    font-size: 1rem;
+}
+
+.sell-modal__player-meta {
+    opacity: 0.82;
+    font-size: 0.92rem;
+}
+
+.sell-modal__label {
+    display: block;
+    margin-bottom: 0.45rem;
+    font-weight: 600;
+}
+
+.sell-modal__input {
+    width: 100%;
+    padding: 0.95rem 1rem;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: rgba(255, 255, 255, 0.08);
+    color: white;
+    font-size: 1rem;
+    outline: none;
+}
+
+.sell-modal__input:focus {
+    border-color: rgba(255, 255, 255, 0.45);
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.sell-modal__input::placeholder {
+    color: rgba(255, 255, 255, 0.45);
+}
+
+.sell-modal__error {
+    min-height: 22px;
+    margin-top: 0.7rem;
+    color: #ffd3d3;
+    font-size: 0.92rem;
+}
+
+.sell-modal__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+}
+
+.sell-modal__btn {
+    border: none;
+    border-radius: 12px;
+    padding: 0.85rem 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.sell-modal__btn:hover {
+    transform: translateY(-1px);
+}
+
+.sell-modal__btn:disabled {
+    opacity: 0.65;
+    cursor: wait;
+}
+
+.sell-modal__btn--ghost {
+    background: rgba(255, 255, 255, 0.12);
+    color: white;
+}
+
+.sell-modal__btn--primary {
+    background: linear-gradient(135deg, #f39c12 0%, #d35400 100%);
+    color: white;
+}
+
+@keyframes sellModalIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px) scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}

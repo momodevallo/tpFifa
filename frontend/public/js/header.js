@@ -6,16 +6,138 @@
         const style = document.createElement('style');
         style.id = 'tp-header-styles';
         style.textContent = `
-          .tp-header-simple { display:flex; justify-content:space-between; align-items:center; gap:1rem; }
-          .tp-header-left { display:flex; align-items:center; gap:1rem; flex-wrap:wrap; }
-          .coins-wrap { display:flex; align-items:center; gap:.8rem; }
-          .coins-wrap .coins { padding:.55rem .9rem; border-radius:999px; background:rgba(0,0,0,.28); font-weight:700; }
-          .btn-regenerate {
-            background:#f1c40f; color:#222; border:none; border-radius:8px;
-            padding:.5rem .8rem; cursor:pointer; font-weight:700; transition:.2s;
+          #tp-header {
+            width: 100%;
           }
-          .btn-regenerate:hover { transform:scale(1.04); }
-          .logo, .logo-img, .coin-icon { display:none !important; }
+
+          .tp-header-simple {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem 2rem;
+            background: rgba(0, 0, 0, 0.28);
+            backdrop-filter: blur(10px);
+          }
+
+          .tp-header-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+          }
+
+          .greeting {
+            font-size: 1.05rem;
+            color: white;
+          }
+
+          .coins-wrap {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            flex-wrap: wrap;
+          }
+
+          .coins-wrap .coins {
+            padding: 0.65rem 1rem;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.12);
+            color: white;
+            font-weight: 700;
+            border: 1px solid rgba(255, 255, 255, 0.14);
+          }
+
+          .btn-regenerate,
+          .btn-logout,
+          .nav-btn {
+            border: none;
+            border-radius: 10px;
+            padding: 0.75rem 1.1rem;
+            cursor: pointer;
+            font-weight: 700;
+            transition: transform 0.2s ease, opacity 0.2s ease, background 0.2s ease;
+          }
+
+          .btn-regenerate {
+            background: #f1c40f;
+            color: #222;
+          }
+
+          .btn-regenerate:hover,
+          .btn-logout:hover,
+          .nav-btn:hover {
+            transform: translateY(-2px);
+          }
+
+          .btn-regenerate:disabled {
+            opacity: 0.65;
+            cursor: wait;
+          }
+
+          .btn-logout {
+            background: #e74c3c;
+            color: white;
+          }
+
+          .main-nav {
+            display: flex;
+            justify-content: center;
+            gap: 0.9rem;
+            flex-wrap: wrap;
+            padding: 1rem 1.5rem 1.35rem;
+            background: rgba(0, 0, 0, 0.16);
+            backdrop-filter: blur(10px);
+          }
+
+          .nav-btn {
+            background: rgba(255, 255, 255, 0.12);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            min-width: 140px;
+          }
+
+          .nav-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+          }
+
+          .nav-btn.active {
+            background: white;
+            color: #1f2937;
+            border-color: white;
+            box-shadow: 0 10px 18px rgba(0, 0, 0, 0.18);
+          }
+
+          .logo,
+          .logo-img,
+          .coin-icon {
+            display: none !important;
+          }
+
+          @media (max-width: 768px) {
+            .tp-header-simple {
+              flex-direction: column;
+              align-items: stretch;
+              padding: 1rem;
+            }
+
+            .tp-header-left {
+              justify-content: center;
+            }
+
+            .btn-logout {
+              width: 100%;
+            }
+
+            .main-nav {
+              padding: 1rem;
+            }
+
+            .nav-btn {
+              width: 100%;
+              min-width: 0;
+            }
+          }
         `;
         document.head.appendChild(style);
     }
