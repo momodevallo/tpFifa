@@ -11,6 +11,94 @@ body {
     color: white;
 }
 
+
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 2rem;
+    background: rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(10px);
+}
+
+.logo h1 {
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+
+.user-info {
+    display: flex;
+    gap: 2rem;
+    align-items: center;
+}
+
+.greeting {
+    font-size: 1.1rem;
+}
+
+.coins {
+    background: rgba(0, 0, 0, 0.4);
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: bold;
+    font-size: 1.1rem;
+}
+
+.coins .coin-icon {
+    width: 32px;
+    height: 32px;
+    object-fit: cover;
+}
+
+.btn-logout {
+    background: #e74c3c;
+    color: white;
+    border: none;
+    padding: 0.7rem 1.5rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: 0.3s;
+}
+
+.btn-logout:hover {
+    background: #c0392b;
+    transform: scale(1.05);
+}
+
+.main-nav {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    padding: 1.5rem;
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.nav-btn {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    border: 2px solid transparent;
+    padding: 0.8rem 1.5rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: 0.3s;
+}
+
+.nav-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: white;
+}
+
+.nav-btn.active {
+    background: rgba(255, 255, 255, 0.3);
+    border-color: white;
+}
+
+
 main {
     padding: 2rem;
 }

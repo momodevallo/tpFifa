@@ -1,6 +1,7 @@
 const API = '';
 
-function getFallbackPlayerImageSrc() {
+// Image de secours utilisée dans les pages legacy du projet.
+function creerImageJoueurParDefaut() {
   return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
     <svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240">
       <defs>
@@ -17,15 +18,17 @@ function getFallbackPlayerImageSrc() {
   `)}`;
 }
 
-function getPlayerImageSrc(joueur) {
-  if (!joueur) return getFallbackPlayerImageSrc();
+// Retourne la bonne source d'image pour un joueur.
+function donnerImageJoueur(joueur) {
+  if (!joueur) return creerImageJoueurParDefaut();
   if (joueur.id) return `/player-image/${joueur.id}`;
   if (joueur.imageUrl) return joueur.imageUrl;
-  return getFallbackPlayerImageSrc();
+  return creerImageJoueurParDefaut();
 }
 
-function escapeHtml(value) {
-  return String(value ?? '')
+// Échappe les caractères HTML pour un affichage sûr.
+function echapperHtml(valeur) {
+  return String(valeur ?? '')
     .replaceAll('&', '&amp;')
     .replaceAll('<', '&lt;')
     .replaceAll('>', '&gt;')
@@ -33,8 +36,9 @@ function escapeHtml(value) {
     .replaceAll("'", '&#039;');
 }
 
-async function apiFetch(url, options = {}) {
-  const response = await fetch(`${API}${url}`, {
+// Petit wrapper fetch pour les anciennes pages du projet.
+async function recupererDepuisApi(url, options = {}) {
+  const reponse = await fetch(`${API}${url}`, {
     credentials: 'same-origin',
     headers: {
       ...(options.body && !(options.body instanceof FormData)
@@ -45,109 +49,120 @@ async function apiFetch(url, options = {}) {
     ...options
   });
 
-  const contentType = response.headers.get('content-type') || '';
-  const isJson = contentType.includes('application/json');
+  const typeContenu = reponse.headers.get('content-type') || '';
+  const estJson = typeContenu.includes('application/json');
 
-  if (!response.ok) {
-    let message = `Erreur ${response.status}`;
-    if (isJson) {
-      const data = await response.json().catch(() => null);
+  if (!reponse.ok) {
+    let message = `Erreur ${reponse.status}`;
+
+    if (estJson) {
+      const data = await reponse.json().catch(() => null);
       message = data?.message || data?.error || message;
     } else {
-      const text = await response.text().catch(() => '');
-      if (response.redirected || text.toLowerCase().includes('<html')) {
+      const texte = await reponse.text().catch(() => '');
+      if (reponse.redirected || texte.toLowerCase().includes('<html')) {
         window.location.href = '/login';
         return;
       }
-      if (text) message = text;
+      if (texte) message = texte;
     }
+
     throw new Error(message);
   }
 
-  if (response.status === 204) return null;
-  if (isJson) return response.json();
+  if (reponse.status === 204) return null;
+  if (estJson) return reponse.json();
 
-  const text = await response.text();
-  if (response.redirected || text.toLowerCase().includes('<html')) {
+  const texte = await reponse.text();
+  if (reponse.redirected || texte.toLowerCase().includes('<html')) {
     window.location.href = '/login';
     return;
   }
-  return text;
+
+  return texte;
 }
 
-async function loadSessionInfo() {
+// Charge le pseudo et les crédits dans les pages legacy.
+async function chargerInfosSession() {
   try {
     const [user, credits] = await Promise.all([
-      apiFetch('/api/moi'),
-      apiFetch('/api/moi/credits')
+      recupererDepuisApi('/api/moi'),
+      recupererDepuisApi('/api/moi/credits')
     ]);
 
-    const pseudoNode = document.querySelector('[data-user-pseudo]');
-    const creditsNode = document.querySelector('[data-user-credits]');
+    const zonePseudo = document.querySelector('[data-user-pseudo]');
+    const zoneCredits = document.querySelector('[data-user-credits]');
 
-    if (pseudoNode) pseudoNode.textContent = user.pseudo;
-    if (creditsNode) creditsNode.textContent = `${credits.credits} crédits`;
+    if (zonePseudo) zonePseudo.textContent = user.pseudo;
+    if (zoneCredits) zoneCredits.textContent = `${credits.credits} crédits`;
 
     window.currentUser = user;
     window.currentCredits = credits;
+
     return { user, credits };
-  } catch (error) {
+  } catch (erreur) {
     if (!location.pathname.endsWith('/login')) {
       window.location.href = '/login';
     }
-    throw error;
+    throw erreur;
   }
 }
 
-function setActiveNav() {
-  const file = location.pathname.split('/').pop() || 'dashboard.html';
-  document.querySelectorAll('.nav a').forEach(link => {
-    if (link.getAttribute('href') === `/${file}` || link.getAttribute('href') === file) {
-      link.classList.add('active');
+// Active le bon lien de navigation selon la page courante.
+function activerLienNavigation() {
+  const fichier = location.pathname.split('/').pop() || 'dashboard.html';
+
+  document.querySelectorAll('.nav a').forEach((lien) => {
+    if (lien.getAttribute('href') === `/${fichier}` || lien.getAttribute('href') === fichier) {
+      lien.classList.add('active');
     }
   });
 }
 
-async function logout() {
+// Déconnecte proprement l'utilisateur.
+async function deconnecterUtilisateur() {
   await fetch('/logout', { method: 'POST', credentials: 'same-origin' });
   window.location.href = '/login?logout';
 }
 
-function renderPlayerCard(carte, extraActions = '') {
-  const j = carte.joueur;
-  const qualiteClass = `qualite-${j.qualite}`;
+// Génère la carte HTML d'un joueur.
+function genererCarteJoueur(carte, actionsSupp = '') {
+  const joueur = carte.joueur;
+  const classeQualite = `qualite-${joueur.qualite}`;
+
   return `
     <article class="player-card">
       <div class="player-top">
         <div>
-          <span class="badge ${qualiteClass}">${escapeHtml(j.qualite)}</span>
-          <div class="player-name">${escapeHtml(j.nom)}</div>
+          <span class="badge ${classeQualite}">${echapperHtml(joueur.qualite)}</span>
+          <div class="player-name">${echapperHtml(joueur.nom)}</div>
           <div class="player-meta">
-            <span>${escapeHtml(j.club || 'Club inconnu')}</span>
-            <span>${escapeHtml(j.nationalite || 'Nationalité inconnue')}</span>
+            <span>${echapperHtml(joueur.club || 'Club inconnu')}</span>
+            <span>${echapperHtml(joueur.nationalite || 'Nationalité inconnue')}</span>
           </div>
         </div>
         <div class="player-rating">
-          <div class="note">${escapeHtml(j.note)}</div>
-          <div class="small">${escapeHtml(j.poste)}</div>
+          <div class="note">${echapperHtml(joueur.note)}</div>
+          <div class="small">${echapperHtml(joueur.poste)}</div>
         </div>
       </div>
       <div class="player-body">
-        <img class="player-avatar" src="${escapeHtml(getPlayerImageSrc(j))}" alt="${escapeHtml(j.nom)}" onerror="this.onerror=null; this.src=getFallbackPlayerImageSrc();" />
+        <img class="player-avatar" src="${echapperHtml(donnerImageJoueur(joueur))}" alt="${echapperHtml(joueur.nom)}" onerror="this.onerror=null; this.src=creerImageJoueurParDefaut();" />
         <div class="player-actions">
           ${carte.nonEchangeable ? '<span class="badge locked">Non échangeable</span>' : ''}
           ${carte.enEquipe ? '<span class="badge equipe">Dans l\'équipe</span>' : ''}
-          ${extraActions}
+          ${actionsSupp}
         </div>
       </div>
     </article>
   `;
 }
 
-function renderMarketplaceCard(annonce, mePseudo) {
-  const own = annonce.vendeurPseudo === mePseudo;
+// Génère une carte d'annonce pour la vieille page marketplace.
+function genererCarteAnnonce(annonce, monPseudo) {
+  const estMonAnnonce = annonce.vendeurPseudo === monPseudo;
   const carte = annonce.carte;
-  const buyAction = own
+  const actionAchat = estMonAnnonce
     ? `<button class="btn-danger" onclick="removeListing(${annonce.id})">Retirer</button>`
     : `<button class="btn" onclick="buyListing(${annonce.id})">Acheter</button>`;
 
@@ -155,39 +170,43 @@ function renderMarketplaceCard(annonce, mePseudo) {
     <article class="player-card">
       <div class="player-top">
         <div>
-          <span class="badge qualite-${escapeHtml(carte.joueur.qualite)}">${escapeHtml(carte.joueur.qualite)}</span>
-          <div class="player-name">${escapeHtml(carte.joueur.nom)}</div>
+          <span class="badge qualite-${echapperHtml(carte.joueur.qualite)}">${echapperHtml(carte.joueur.qualite)}</span>
+          <div class="player-name">${echapperHtml(carte.joueur.nom)}</div>
           <div class="player-meta">
-            <span>Vendeur : ${escapeHtml(annonce.vendeurPseudo)}</span>
-            <span>${escapeHtml(carte.joueur.club || 'Club inconnu')}</span>
+            <span>Vendeur : ${echapperHtml(annonce.vendeurPseudo)}</span>
+            <span>${echapperHtml(carte.joueur.club || 'Club inconnu')}</span>
           </div>
         </div>
         <div class="player-rating">
-          <div class="note">${escapeHtml(carte.joueur.note)}</div>
-          <div class="small">${escapeHtml(carte.joueur.poste)}</div>
+          <div class="note">${echapperHtml(carte.joueur.note)}</div>
+          <div class="small">${echapperHtml(carte.joueur.poste)}</div>
         </div>
       </div>
       <div class="player-body">
-        <img class="player-avatar" src="${escapeHtml(getPlayerImageSrc(carte.joueur))}" alt="${escapeHtml(carte.joueur.nom)}" onerror="this.onerror=null; this.src=getFallbackPlayerImageSrc();" />
+        <img class="player-avatar" src="${echapperHtml(donnerImageJoueur(carte.joueur))}" alt="${echapperHtml(carte.joueur.nom)}" onerror="this.onerror=null; this.src=creerImageJoueurParDefaut();" />
         <div class="player-actions">
           <span class="badge">${annonce.prix} crédits</span>
-          ${buyAction}
+          ${actionAchat}
         </div>
       </div>
     </article>
   `;
 }
 
-function showMessage(selector, type, message) {
-  const box = document.querySelector(selector);
+// Affiche un message simple dans une zone.
+function afficherMessage(selecteur, type, message) {
+  const box = document.querySelector(selecteur);
   if (!box) return;
+
   box.className = type;
   box.textContent = message;
   box.classList.remove('hidden');
 }
 
-function hideMessage(selector) {
-  const box = document.querySelector(selector);
+// Cache une zone de message.
+function masquerMessage(selecteur) {
+  const box = document.querySelector(selecteur);
   if (!box) return;
+
   box.classList.add('hidden');
 }

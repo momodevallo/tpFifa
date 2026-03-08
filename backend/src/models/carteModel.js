@@ -1,6 +1,7 @@
 import pool from '../config/db.js';
 
-export async function getUserCards(userId) {
+// Retourne toutes les cartes d'un utilisateur.
+export async function recupererCartesUtilisateur(userId) {
     try {
         const [rows] = await pool.query(
             `SELECT c.id as carte_id, c.utilisateur_id, c.joueur_id,
@@ -12,42 +13,45 @@ export async function getUserCards(userId) {
             [userId]
         );
         return rows;
-    } catch (err) {
-        console.error('Erreur getUserCards:', err);
-        throw err;
+    } catch (erreur) {
+        console.error('Erreur recupererCartesUtilisateur:', erreur);
+        throw erreur;
     }
 }
 
-export async function addCardToUser(userId, joueurId) {
+// Ajoute une carte à l'utilisateur.
+export async function ajouterCarteUtilisateur(userId, joueurId) {
     try {
         const [result] = await pool.query(
             'INSERT INTO cartes (utilisateur_id, joueur_id) VALUES (?, ?)',
             [userId, joueurId]
         );
         return result.insertId;
-    } catch (err) {
-        if (err.code === 'ER_DUP_ENTRY') {
+    } catch (erreur) {
+        if (erreur.code === 'ER_DUP_ENTRY') {
             throw new Error('Vous possédez déjà ce joueur');
         }
-        console.error('Erreur addCardToUser:', err);
-        throw err;
+        console.error('Erreur ajouterCarteUtilisateur:', erreur);
+        throw erreur;
     }
 }
 
-export async function removeCardFromUser(carteId, userId) {
+// Supprime une carte d'un utilisateur.
+export async function supprimerCarteUtilisateur(carteId, userId) {
     try {
         const [result] = await pool.query(
             'DELETE FROM cartes WHERE id = ? AND utilisateur_id = ?',
             [carteId, userId]
         );
         return result.affectedRows > 0;
-    } catch (err) {
-        console.error('Erreur removeCardFromUser:', err);
-        throw err;
+    } catch (erreur) {
+        console.error('Erreur supprimerCarteUtilisateur:', erreur);
+        throw erreur;
     }
 }
 
-export async function getCardById(carteId) {
+// Cherche une carte précise par son id.
+export async function recupererCarteParId(carteId) {
     try {
         const [rows] = await pool.query(
             `SELECT c.id as carte_id, c.utilisateur_id, c.joueur_id,
@@ -58,21 +62,22 @@ export async function getCardById(carteId) {
             [carteId]
         );
         return rows[0] || null;
-    } catch (err) {
-        console.error('Erreur getCardById:', err);
-        throw err;
+    } catch (erreur) {
+        console.error('Erreur recupererCarteParId:', erreur);
+        throw erreur;
     }
 }
 
-export async function userOwnsCard(userId, carteId) {
+// Vérifie qu'une carte appartient bien à un utilisateur.
+export async function carteAppartientUtilisateur(userId, carteId) {
     try {
         const [rows] = await pool.query(
             'SELECT id FROM cartes WHERE id = ? AND utilisateur_id = ?',
             [carteId, userId]
         );
         return rows.length > 0;
-    } catch (err) {
-        console.error('Erreur userOwnsCard:', err);
-        throw err;
+    } catch (erreur) {
+        console.error('Erreur carteAppartientUtilisateur:', erreur);
+        throw erreur;
     }
 }

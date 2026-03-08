@@ -1,4 +1,5 @@
-function getFallbackPlayerImageSrc() {
+// Image locale de secours si la photo d'un joueur est absente.
+function creerImageJoueurParDefaut() {
     return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
         <svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240">
             <defs>
@@ -15,19 +16,21 @@ function getFallbackPlayerImageSrc() {
     `)}`;
 }
 
-function getPlayerImageSrc(joueur) {
+// Donne la bonne URL d'image pour un joueur.
+function donnerImageJoueur(joueur) {
     if (!joueur) return '';
     if (joueur.id) return `/player-image/${joueur.id}`;
     return joueur.imageUrl || '';
 }
 
-function renderCard(carte) {
+// Génére l'affichage HTML d'une carte joueur sur le terrain.
+function genererCarteJoueur(carte) {
     return `
         <div class="joueur">
             <div class="card">
                 <div class="rating">${carte.joueur.note}</div>
-                <img src="${getPlayerImageSrc(carte.joueur)}" alt="${carte.joueur.nom}"
-                     onerror="this.onerror=null; this.src=getFallbackPlayerImageSrc();">
+                <img src="${donnerImageJoueur(carte.joueur)}" alt="${carte.joueur.nom}"
+                     onerror="this.onerror=null; this.src=creerImageJoueurParDefaut();">
                 <div class="nom">${carte.joueur.nom}</div>
                 <div class="poste">${carte.joueur.poste}</div>
             </div>
@@ -35,63 +38,70 @@ function renderCard(carte) {
     `;
 }
 
-const TEAM_REFRESH_MS = 4000;
-let teamRefreshTimer = null;
+const DELAI_RAFRAICHISSEMENT_EQUIPE = 4000;
+let timerEquipe = null;
 
-function renderLine(className, cards) {
-    return `<div class="ligne ${className}">${cards.map(renderCard).join('')}</div>`;
+// Génére une ligne du terrain (attaque, milieu, défense, gardien).
+function genererLigne(classeLigne, cartes) {
+    return `<div class="ligne ${classeLigne}">${cartes.map(genererCarteJoueur).join('')}</div>`;
 }
 
-async function loadTeam() {
+// Charge l'équipe du joueur et l'affiche sur le terrain.
+async function chargerEquipe() {
     const terrain = document.querySelector('.terrain');
     if (!terrain) return;
 
     try {
-        const res = await fetch('/api/moi/equipe', { credentials: 'same-origin' });
+        const reponse = await fetch('/api/moi/equipe', { credentials: 'same-origin' });
 
-        if (res.status === 401) {
+        if (reponse.status === 401) {
             window.location.href = '/login';
             return;
         }
 
-        if (!res.ok) {
+        if (!reponse.ok) {
             throw new Error('Impossible de charger l\'équipe');
         }
 
-        const team = await res.json();
-        const allCards = [
-            ...(team.attaquants || []),
-            ...(team.milieux || []),
-            ...(team.defenseurs || []),
-            ...(team.gardiens || [])
+        const equipe = await reponse.json();
+        const toutesLesCartes = [
+            ...(equipe.attaquants || []),
+            ...(equipe.milieux || []),
+            ...(equipe.defenseurs || []),
+            ...(equipe.gardiens || [])
         ];
 
-        if (!allCards.length) {
+        if (!toutesLesCartes.length) {
             terrain.innerHTML = '<div class="empty-team">Aucun joueur dans l\'équipe pour le moment.</div>';
             return;
         }
 
         terrain.innerHTML = `
-            ${renderLine('attaque', team.attaquants || [])}
-            ${renderLine('milieu', team.milieux || [])}
-            ${renderLine('defense', team.defenseurs || [])}
-            ${renderLine('gardien', team.gardiens || [])}
+            ${genererLigne('attaque', equipe.attaquants || [])}
+            ${genererLigne('milieu', equipe.milieux || [])}
+            ${genererLigne('defense', equipe.defenseurs || [])}
+            ${genererLigne('gardien', equipe.gardiens || [])}
         `;
-    } catch (error) {
-        console.error(error);
+    } catch (erreur) {
+        console.error(erreur);
         terrain.innerHTML = '<div class="empty-team">Impossible de charger l\'équipe.</div>';
     }
 }
 
-function startTeamAutoRefresh() {
-    if (teamRefreshTimer) clearInterval(teamRefreshTimer);
-    teamRefreshTimer = setInterval(() => loadTeam().catch(error => console.error(error)), TEAM_REFRESH_MS);
+// Lance le rafraîchissement automatique de la page d'accueil.
+function demarrerRafraichissementEquipe() {
+    if (timerEquipe) clearInterval(timerEquipe);
+
+    timerEquipe = setInterval(() => {
+        chargerEquipe().catch(erreur => console.error(erreur));
+    }, DELAI_RAFRAICHISSEMENT_EQUIPE);
+
     document.addEventListener('visibilitychange', () => {
         if (!document.hidden) {
-            loadTeam().catch(error => console.error(error));
+            chargerEquipe().catch(erreur => console.error(erreur));
         }
     });
 }
 
-loadTeam().catch(error => console.error(error));
-startTeamAutoRefresh();
+chargerEquipe().catch(erreur => console.error(erreur));
+demarrerRafraichissementEquipe();

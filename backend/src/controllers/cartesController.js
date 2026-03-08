@@ -1,23 +1,24 @@
-import { getUserCards } from '../models/carteModel.js';
-import { getOrCreateWallet } from '../models/walletModel.js';
+import { recupererCartesUtilisateur } from '../models/carteModel.js';
+import { recupererOuCreerPortefeuille } from '../models/walletModel.js';
 
-export async function getMyCards(req, res) {
+// Retourne les cartes du joueur ainsi que son solde actuel.
+export async function recupererMesCartes(req, res) {
     try {
-        const userId = req.query.userId || req.body.userId;
-        
-        if (!userId) {
+        const idUtilisateur = req.query.userId || req.body.userId;
+
+        if (!idUtilisateur) {
             return res.status(400).json({ message: 'userId requis' });
         }
 
-        const cards = await getUserCards(userId);
-        const wallet = await getOrCreateWallet(userId);
+        const cartes = await recupererCartesUtilisateur(idUtilisateur);
+        const portefeuille = await recupererOuCreerPortefeuille(idUtilisateur);
 
-        return res.status(200).json({ 
-            cards,
-            credits: wallet.credits
+        return res.status(200).json({
+            cards: cartes,
+            credits: portefeuille.credits
         });
-    } catch (err) {
-        console.error('Erreur getMyCards:', err);
+    } catch (erreur) {
+        console.error('Erreur recupererMesCartes:', erreur);
         return res.status(500).json({ message: 'Erreur serveur' });
     }
 }

@@ -1,11 +1,13 @@
-const POLL_MAX_ATTEMPTS = 30;
-const POLL_DELAY_MS = 1000;
+const MAX_TENTATIVES_PACK = 30;
+const DELAI_VERIFICATION_PACK_MS = 1000;
 
-function sleep(ms) {
+// Petite pause pour laisser jouer l'animation.
+function attendre(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-function getFallbackPlayerImageSrc() {
+// Image locale de secours si une photo de joueur ne charge pas.
+function creerImageJoueurParDefaut() {
     return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
         <svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240">
             <defs>
@@ -22,59 +24,65 @@ function getFallbackPlayerImageSrc() {
     `)}`;
 }
 
-function getPlayerImageSrc(joueur) {
+// Donne la meilleure URL d'image possible pour un joueur.
+function donnerImageJoueur(joueur) {
     if (!joueur) return '';
     if (joueur.id) return `/player-image/${joueur.id}`;
     return joueur.imageUrl || '';
 }
 
-function getResponseKind(res) {
-    const contentType = (res.headers.get('content-type') || '').toLowerCase();
-    if (res.status === 401 || res.status === 403) return 'unauthorized';
-    if (res.redirected || res.url.includes('/login')) return 'login-page';
-    if (contentType.includes('application/json')) return 'json';
-    if (contentType.includes('text/html')) return 'html';
-    return 'other';
+// Détecte si la réponse est du JSON, du HTML ou une redirection de session.
+function determinerTypeReponse(reponse) {
+    const typeContenu = (reponse.headers.get('content-type') || '').toLowerCase();
+    if (reponse.status === 401 || reponse.status === 403) return 'non-auth';
+    if (reponse.redirected || reponse.url.includes('/login')) return 'page-login';
+    if (typeContenu.includes('application/json')) return 'json';
+    if (typeContenu.includes('text/html')) return 'html';
+    return 'autre';
 }
 
-async function safeJsonFetch(url, options = {}) {
-    const res = await fetch(url, { credentials: 'same-origin', ...options });
-    const kind = getResponseKind(res);
+// Fait un appel fetch en gérant la session et les erreurs serveur.
+async function recupererJsonSecurise(url, options = {}) {
+    const reponse = await fetch(url, { credentials: 'same-origin', ...options });
+    const typeReponse = determinerTypeReponse(reponse);
 
-    if (kind === 'unauthorized' || kind === 'login-page') {
+    if (typeReponse === 'non-auth' || typeReponse === 'page-login') {
         window.location.href = '/login';
         return null;
     }
 
-    const data = kind === 'json' ? await res.json().catch(() => ({})) : {};
+    const data = typeReponse === 'json' ? await reponse.json().catch(() => ({})) : {};
 
-    if (!res.ok) {
-        throw new Error(data?.message || data?.error || `Erreur ${res.status}`);
+    if (!reponse.ok) {
+        throw new Error(data?.message || data?.error || `Erreur ${reponse.status}`);
     }
 
     return data;
 }
 
-function setButtonsDisabled(disabled) {
-    document.querySelectorAll('.btn-buy').forEach(button => {
-        button.disabled = disabled;
-        button.classList.toggle('is-loading', disabled);
+// Bloque tous les boutons d'achat pendant l'ouverture d'un pack.
+function bloquerBoutonsAchat(estBloque) {
+    document.querySelectorAll('.btn-buy').forEach((bouton) => {
+        bouton.disabled = estBloque;
+        bouton.classList.toggle('is-loading', estBloque);
     });
 }
 
-function setExperienceState(stateClass, title, text = '') {
+// Met à jour la zone d'expérience visuelle de la boutique.
+function changerEtatExperience(classeEtat, titre, texte = '') {
     const section = document.getElementById('packExperience');
-    const stage = document.getElementById('packStage');
-    const titleNode = document.getElementById('packExperienceTitle');
-    const textNode = document.getElementById('packExperienceText');
+    const zonePack = document.getElementById('packStage');
+    const titreNode = document.getElementById('packExperienceTitle');
+    const texteNode = document.getElementById('packExperienceText');
 
     section.classList.remove('hidden');
-    stage.className = `pack-stage ${stateClass}`;
-    titleNode.textContent = title;
-    textNode.textContent = text;
+    zonePack.className = `pack-stage ${classeEtat}`;
+    titreNode.textContent = titre;
+    texteNode.textContent = texte;
 }
 
-function renderRevealCard(carte) {
+// Construit l'HTML d'une carte révélée après ouverture du pack.
+function genererCarteReveal(carte) {
     const joueur = carte?.joueur || {};
     return `
         <article class="reveal-card">
@@ -83,8 +91,8 @@ function renderRevealCard(carte) {
                 <span class="reveal-position">${joueur.poste || '-'}</span>
             </div>
             <div class="reveal-avatar-wrap">
-                <img class="reveal-avatar" src="${getPlayerImageSrc(joueur)}" alt="${joueur.nom || 'Joueur'}"
-                     onerror="this.onerror=null; this.src=getFallbackPlayerImageSrc();">
+                <img class="reveal-avatar" src="${donnerImageJoueur(joueur)}" alt="${joueur.nom || 'Joueur'}"
+                     onerror="this.onerror=null; this.src=creerImageJoueurParDefaut();">
             </div>
             <div class="reveal-card__body">
                 <h3>${joueur.nom || 'Joueur'}</h3>
@@ -95,95 +103,107 @@ function renderRevealCard(carte) {
     `;
 }
 
-async function refreshCredits() {
-    const data = await safeJsonFetch('/api/moi/credits');
+// Recharge le compteur de crédits du header.
+async function rafraichirCredits() {
+    const data = await recupererJsonSecurise('/api/moi/credits');
     if (!data) return;
-    const money = document.getElementById('money');
-    if (money) money.textContent = data.credits;
+
+    const zoneArgent = document.getElementById('money');
+    if (zoneArgent) zoneArgent.textContent = data.credits;
 }
 
-async function fetchPackMap() {
-    const packs = await safeJsonFetch('/api/packs');
-    const map = {};
+// Associe les packs de la base aux boutons bronze / silver / gold.
+async function chargerCorrespondancePacks() {
+    const packs = await recupererJsonSecurise('/api/packs');
+    const correspondance = {};
 
     for (const pack of packs || []) {
-        const nom = String(pack.nom || '').toLowerCase();
-        if (nom.includes('bronze')) map.bronze = pack;
-        else if (nom.includes('argent') || nom.includes('silver')) map.silver = pack;
-        else if (nom.includes('or') || nom.includes('gold')) map.gold = pack;
+        const nomPack = String(pack.nom || '').toLowerCase();
+
+        if (nomPack.includes('bronze')) correspondance.bronze = pack;
+        else if (nomPack.includes('argent') || nomPack.includes('silver')) correspondance.silver = pack;
+        else if (nomPack.includes('or') || nomPack.includes('gold')) correspondance.gold = pack;
     }
 
-    if (!map.bronze && packs?.[0]) map.bronze = packs[0];
-    if (!map.silver && packs?.[1]) map.silver = packs[1];
-    if (!map.gold && packs?.[2]) map.gold = packs[2];
-    return map;
+    if (!correspondance.bronze && packs?.[0]) correspondance.bronze = packs[0];
+    if (!correspondance.silver && packs?.[1]) correspondance.silver = packs[1];
+    if (!correspondance.gold && packs?.[2]) correspondance.gold = packs[2];
+
+    return correspondance;
 }
 
-async function waitForPack(uuid) {
-    for (let attempt = 0; attempt < POLL_MAX_ATTEMPTS; attempt++) {
-        const result = await safeJsonFetch(`/api/packs/${uuid}`);
-        if (!result) return null;
-        if (result.statut === 'READY') return result;
-        if (result.statut === 'FAILED') {
-            throw new Error(result.message || 'Échec du pack');
+// Attend que le backend termine réellement l'ouverture du pack.
+async function attendrePackPret(uuid) {
+    for (let tentative = 0; tentative < MAX_TENTATIVES_PACK; tentative++) {
+        const resultat = await recupererJsonSecurise(`/api/packs/${uuid}`);
+        if (!resultat) return null;
+
+        if (resultat.statut === 'READY') return resultat;
+        if (resultat.statut === 'FAILED') {
+            throw new Error(resultat.message || 'Échec du pack');
         }
-        await sleep(POLL_DELAY_MS);
+
+        await attendre(DELAI_VERIFICATION_PACK_MS);
     }
 
     throw new Error('Le pack met trop de temps à arriver');
 }
 
-async function playPackAnimation(packName) {
-    const revealGrid = document.getElementById('packRevealGrid');
-    revealGrid.innerHTML = '';
+// Joue les étapes visuelles avant d'afficher les joueurs gagnés.
+async function jouerAnimationPack(nomPack) {
+    const grille = document.getElementById('packRevealGrid');
+    grille.innerHTML = '';
 
-    setExperienceState('stage-start', packName, 'Le pack arrive...');
-    await sleep(450);
-    setExperienceState('stage-spin', packName, 'Ouverture en cours...');
-    await sleep(1400);
-    setExperienceState('stage-open', packName, 'Révélation des joueurs...');
-    await sleep(700);
+    changerEtatExperience('stage-start', nomPack, 'Le pack arrive...');
+    await attendre(450);
+
+    changerEtatExperience('stage-spin', nomPack, 'Ouverture en cours...');
+    await attendre(1400);
+
+    changerEtatExperience('stage-open', nomPack, 'Révélation des joueurs...');
+    await attendre(700);
 }
 
 (async () => {
-    let packMap = {};
+    let correspondancePacks = {};
 
     try {
-        packMap = await fetchPackMap();
-        await refreshCredits();
-    } catch (error) {
-        console.error(error);
-        setExperienceState('stage-error', 'Boutique indisponible', error.message || 'Impossible de charger les packs.');
+        correspondancePacks = await chargerCorrespondancePacks();
+        await rafraichirCredits();
+    } catch (erreur) {
+        console.error(erreur);
+        changerEtatExperience('stage-error', 'Boutique indisponible', erreur.message || 'Impossible de charger les packs.');
     }
 
-    document.querySelectorAll('.btn-buy').forEach(btn => {
-        btn.addEventListener('click', async (event) => {
-            const key = event.currentTarget.dataset.pack;
-            const pack = packMap[key];
+    document.querySelectorAll('.btn-buy').forEach((bouton) => {
+        bouton.addEventListener('click', async (event) => {
+            const clePack = event.currentTarget.dataset.pack;
+            const pack = correspondancePacks[clePack];
 
             if (!pack) {
-                setExperienceState('stage-error', 'Erreur', 'Pack introuvable.');
+                changerEtatExperience('stage-error', 'Erreur', 'Pack introuvable.');
                 return;
             }
 
-            setButtonsDisabled(true);
+            bloquerBoutonsAchat(true);
 
             try {
-                const launch = await safeJsonFetch(`/api/packs/${pack.id}/ouvrir`, { method: 'POST' });
-                if (!launch?.uuid) {
+                const lancement = await recupererJsonSecurise(`/api/packs/${pack.id}/ouvrir`, { method: 'POST' });
+                if (!lancement?.uuid) {
                     throw new Error('Impossible de lancer le pack');
                 }
 
-                await playPackAnimation(pack.nom);
-                const result = await waitForPack(launch.uuid);
-                document.getElementById('packRevealGrid').innerHTML = (result.cartes || []).map(renderRevealCard).join('');
-                setExperienceState('stage-open', pack.nom, `${result.cartes?.length || 0} joueur(s) obtenu(s).`);
-                await refreshCredits();
-            } catch (error) {
-                console.error(error);
-                setExperienceState('stage-error', 'Erreur', error.message || 'Erreur pendant l\'ouverture du pack.');
+                await jouerAnimationPack(pack.nom);
+
+                const resultat = await attendrePackPret(lancement.uuid);
+                document.getElementById('packRevealGrid').innerHTML = (resultat.cartes || []).map(genererCarteReveal).join('');
+                changerEtatExperience('stage-open', pack.nom, `${resultat.cartes?.length || 0} joueur(s) obtenu(s).`);
+                await rafraichirCredits();
+            } catch (erreur) {
+                console.error(erreur);
+                changerEtatExperience('stage-error', 'Erreur', erreur.message || 'Erreur pendant l\'ouverture du pack.');
             } finally {
-                setButtonsDisabled(false);
+                bloquerBoutonsAchat(false);
             }
         });
     });

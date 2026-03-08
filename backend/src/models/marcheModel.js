@@ -1,6 +1,7 @@
 import pool from '../config/db.js';
 
-export async function getAllMarketListings() {
+// Retourne toutes les annonces du marché avec infos joueur.
+export async function recupererToutesLesAnnonces() {
     try {
         const [rows] = await pool.query(
             `SELECT am.id as annonce_id, am.carte_id, am.vendeur_id, am.prix,
@@ -13,42 +14,45 @@ export async function getAllMarketListings() {
              ORDER BY am.prix ASC, j.note DESC`
         );
         return rows;
-    } catch (err) {
-        console.error('Erreur getAllMarketListings:', err);
-        throw err;
+    } catch (erreur) {
+        console.error('Erreur recupererToutesLesAnnonces:', erreur);
+        throw erreur;
     }
 }
 
-export async function createMarketListing(carteId, vendeurId, prix) {
+// Crée une annonce marché.
+export async function creerAnnonceMarche(carteId, vendeurId, prix) {
     try {
         const [result] = await pool.query(
             'INSERT INTO annonces_marche (carte_id, vendeur_id, prix) VALUES (?, ?, ?)',
             [carteId, vendeurId, prix]
         );
         return result.insertId;
-    } catch (err) {
-        if (err.code === 'ER_DUP_ENTRY') {
+    } catch (erreur) {
+        if (erreur.code === 'ER_DUP_ENTRY') {
             throw new Error('Cette carte est déjà en vente');
         }
-        console.error('Erreur createMarketListing:', err);
-        throw err;
+        console.error('Erreur creerAnnonceMarche:', erreur);
+        throw erreur;
     }
 }
 
-export async function removeMarketListing(annonceId) {
+// Supprime une annonce par son id.
+export async function supprimerAnnonceMarche(annonceId) {
     try {
         const [result] = await pool.query(
             'DELETE FROM annonces_marche WHERE id = ?',
             [annonceId]
         );
         return result.affectedRows > 0;
-    } catch (err) {
-        console.error('Erreur removeMarketListing:', err);
-        throw err;
+    } catch (erreur) {
+        console.error('Erreur supprimerAnnonceMarche:', erreur);
+        throw erreur;
     }
 }
 
-export async function getMarketListingById(annonceId) {
+// Retourne une annonce précise.
+export async function recupererAnnonceParId(annonceId) {
     try {
         const [rows] = await pool.query(
             `SELECT am.id as annonce_id, am.carte_id, am.vendeur_id, am.prix,
@@ -62,21 +66,22 @@ export async function getMarketListingById(annonceId) {
             [annonceId]
         );
         return rows[0] || null;
-    } catch (err) {
-        console.error('Erreur getMarketListingById:', err);
-        throw err;
+    } catch (erreur) {
+        console.error('Erreur recupererAnnonceParId:', erreur);
+        throw erreur;
     }
 }
 
-export async function removeMarketListingByCardId(carteId) {
+// Supprime toutes les annonces liées à une carte.
+export async function supprimerAnnonceParCarte(carteId) {
     try {
         const [result] = await pool.query(
             'DELETE FROM annonces_marche WHERE carte_id = ?',
             [carteId]
         );
         return result.affectedRows > 0;
-    } catch (err) {
-        console.error('Erreur removeMarketListingByCardId:', err);
-        throw err;
+    } catch (erreur) {
+        console.error('Erreur supprimerAnnonceParCarte:', erreur);
+        throw erreur;
     }
 }

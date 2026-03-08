@@ -1,16 +1,17 @@
-let selectedBenchCardId = null;
-let cachedCards = [];
-let cachedTeam = null;
-let draggedCardId = null;
-let draggedFromTeam = false;
-let benchSearchValue = '';
-let benchPositionValue = 'all';
-let compositionRefreshTimer = null;
-let compositionRequestInFlight = false;
-const COMPOSITION_REFRESH_MS = 4000;
+let idCarteBancSelectionnee = null;
+let cartesCachees = [];
+let equipeCachee = null;
+let idCarteGlissee = null;
+let glisseDepuisEquipe = false;
+let rechercheBanc = '';
+let filtrePosteBanc = 'all';
+let timerComposition = null;
+let requeteCompositionEnCours = false;
+const DELAI_RAFRAICHISSEMENT_COMPOSITION = 4000;
 
-function escapeHtml(value) {
-    return String(value || '')
+// Échappe les caractères HTML pour éviter d'injecter du texte brut dans la page.
+function echapperHtml(valeur) {
+    return String(valeur || '')
         .replaceAll('&', '&amp;')
         .replaceAll('<', '&lt;')
         .replaceAll('>', '&gt;')
@@ -18,7 +19,8 @@ function escapeHtml(value) {
         .replaceAll("'", '&#39;');
 }
 
-function getFallbackPlayerImageSrc() {
+// Crée une image locale si une vraie image joueur n'est pas disponible.
+function creerImageJoueurParDefaut() {
     return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
         <svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240">
             <defs>
@@ -35,351 +37,390 @@ function getFallbackPlayerImageSrc() {
     `)}`;
 }
 
-function getPlayerImageSrc(joueur) {
+// Retourne la bonne image à afficher pour le joueur.
+function donnerImageJoueur(joueur) {
     if (!joueur) return '';
     if (joueur.id) return `/player-image/${joueur.id}`;
     return joueur.imageUrl || '';
 }
 
-function renderBenchCard(carte) {
-    const selectedClass = selectedBenchCardId === carte.id ? ' selected' : '';
+// Génère la carte d'un joueur dans la zone banc.
+function genererCarteBanc(carte) {
+    const classeSelection = idCarteBancSelectionnee === carte.id ? ' selected' : '';
+
     return `
-        <div class="bench-player-card${selectedClass}"
+        <div class="bench-player-card${classeSelection}"
              data-id="${carte.id}"
              data-poste="${carte.joueur.poste}"
              draggable="true">
             <div class="rating">${carte.joueur.note}</div>
-            <img src="${getPlayerImageSrc(carte.joueur)}" alt="${escapeHtml(carte.joueur.nom)}"
-                 onerror="this.onerror=null; this.src=getFallbackPlayerImageSrc();">
+            <img src="${donnerImageJoueur(carte.joueur)}" alt="${echapperHtml(carte.joueur.nom)}"
+                 onerror="this.onerror=null; this.src=creerImageJoueurParDefaut();">
             <div class="info">
-                <span class="name">${escapeHtml(carte.joueur.nom)}</span>
-                <span class="pos">${escapeHtml(carte.joueur.poste)}</span>
+                <span class="name">${echapperHtml(carte.joueur.nom)}</span>
+                <span class="pos">${echapperHtml(carte.joueur.poste)}</span>
             </div>
         </div>
     `;
 }
 
-function renderSlot(carte, poste) {
+// Génère le contenu d'une case du terrain.
+function genererCaseTerrain(carte, poste) {
     if (!carte) {
-        return `<div class="slot-placeholder">${escapeHtml(poste)}</div>`;
+        return `<div class="slot-placeholder">${echapperHtml(poste)}</div>`;
     }
 
     return `
         <div class="slot-card" data-carte-id="${carte.id}" data-poste="${carte.joueur.poste}" draggable="true">
             <div class="rating">${carte.joueur.note}</div>
-            <img src="${getPlayerImageSrc(carte.joueur)}" alt="${escapeHtml(carte.joueur.nom)}"
-                 onerror="this.onerror=null; this.src=getFallbackPlayerImageSrc();">
+            <img src="${donnerImageJoueur(carte.joueur)}" alt="${echapperHtml(carte.joueur.nom)}"
+                 onerror="this.onerror=null; this.src=creerImageJoueurParDefaut();">
             <div class="info">
-                <span class="name">${escapeHtml(carte.joueur.nom)}</span>
-                <span class="pos">${escapeHtml(carte.joueur.poste)}</span>
+                <span class="name">${echapperHtml(carte.joueur.nom)}</span>
+                <span class="pos">${echapperHtml(carte.joueur.poste)}</span>
             </div>
             <button class="slot-remove" data-carte-id="${carte.id}" type="button" title="Retirer de l'équipe">Retirer</button>
         </div>
     `;
 }
 
-function getPosteFromSlot(slot) {
-    return String(slot.dataset.position || '').replace(/[0-9]/g, '');
+// Extrait le poste attendu à partir du dataset de la case.
+function extrairePosteDepuisCase(caseTerrain) {
+    return String(caseTerrain.dataset.position || '').replace(/[0-9]/g, '');
 }
 
-function fillSlots(cards, selector) {
-    const slots = document.querySelectorAll(selector);
-    slots.forEach((slot, index) => {
-        const poste = getPosteFromSlot(slot);
-        const carte = cards[index];
-        slot.dataset.carteId = carte ? String(carte.id) : '';
-        slot.innerHTML = renderSlot(carte, poste);
+// Remplit une série de cases avec les cartes passées en paramètre.
+function remplirCases(cartes, selecteur) {
+    const cases = document.querySelectorAll(selecteur);
+
+    cases.forEach((caseTerrain, index) => {
+        const poste = extrairePosteDepuisCase(caseTerrain);
+        const carte = cartes[index];
+
+        caseTerrain.dataset.carteId = carte ? String(carte.id) : '';
+        caseTerrain.innerHTML = genererCaseTerrain(carte, poste);
     });
 }
 
-function getTeamCards() {
+// Regroupe toutes les cartes actuellement présentes dans l'équipe.
+function recupererCartesEquipe() {
     return [
-        ...(cachedTeam?.attaquants || []),
-        ...(cachedTeam?.milieux || []),
-        ...(cachedTeam?.defenseurs || []),
-        ...(cachedTeam?.gardiens || [])
+        ...(equipeCachee?.attaquants || []),
+        ...(equipeCachee?.milieux || []),
+        ...(equipeCachee?.defenseurs || []),
+        ...(equipeCachee?.gardiens || [])
     ];
 }
 
-function getCardById(cardId) {
-    return cachedCards.find(card => Number(card.id) === Number(cardId))
-        || getTeamCards().find(card => Number(card.id) === Number(cardId))
+// Cherche une carte par son identifiant dans le banc puis dans l'équipe.
+function trouverCarteParId(idCarte) {
+    return cartesCachees.find(carte => Number(carte.id) === Number(idCarte))
+        || recupererCartesEquipe().find(carte => Number(carte.id) === Number(idCarte))
         || null;
 }
 
-function getBenchCards() {
-    const teamIds = new Set(getTeamCards().map(c => c.id));
-    return cachedCards.filter(c => !teamIds.has(c.id));
+// Retourne uniquement les cartes qui ne sont pas encore sur le terrain.
+function recupererCartesBanc() {
+    const idsEquipe = new Set(recupererCartesEquipe().map(carte => carte.id));
+    return cartesCachees.filter(carte => !idsEquipe.has(carte.id));
 }
 
-function getFilteredBenchCards() {
-    return getBenchCards().filter(card => {
-        const matchesSearch = !benchSearchValue || card.joueur.nom.toLowerCase().includes(benchSearchValue);
-        const matchesPosition = benchPositionValue === 'all' || card.joueur.poste === benchPositionValue;
-        return matchesSearch && matchesPosition;
+// Applique la recherche et le filtre de poste sur le banc.
+function recupererCartesBancFiltrees() {
+    return recupererCartesBanc().filter((carte) => {
+        const okRecherche = !rechercheBanc || carte.joueur.nom.toLowerCase().includes(rechercheBanc);
+        const okPoste = filtrePosteBanc === 'all' || carte.joueur.poste === filtrePosteBanc;
+        return okRecherche && okPoste;
     });
 }
 
-function refreshBench() {
-    const bench = getFilteredBenchCards();
-    const benchNode = document.querySelector('.bench-players');
+// Réaffiche complètement la zone du banc.
+function rafraichirBanc() {
+    const banc = recupererCartesBancFiltrees();
+    const zoneBanc = document.querySelector('.bench-players');
 
-    if (!bench.length) {
-        benchNode.innerHTML = '<div class="bench-empty">Aucun joueur ne correspond au filtre.</div>';
+    if (!banc.length) {
+        zoneBanc.innerHTML = '<div class="bench-empty">Aucun joueur ne correspond au filtre.</div>';
         return;
     }
 
-    benchNode.innerHTML = bench.map(renderBenchCard).join('');
+    zoneBanc.innerHTML = banc.map(genererCarteBanc).join('');
 }
 
-function clearDragState() {
-    draggedCardId = null;
-    draggedFromTeam = false;
-    document.querySelectorAll('.drag-over, .drag-invalid, .drag-source').forEach(el => {
-        el.classList.remove('drag-over', 'drag-invalid', 'drag-source');
+// Nettoie l'état visuel et logique du drag & drop.
+function reinitialiserDrag() {
+    idCarteGlissee = null;
+    glisseDepuisEquipe = false;
+
+    document.querySelectorAll('.drag-over, .drag-invalid, .drag-source').forEach((element) => {
+        element.classList.remove('drag-over', 'drag-invalid', 'drag-source');
     });
 }
 
-function markSlotState(slot, isValid) {
-    slot.classList.remove('drag-over', 'drag-invalid');
-    slot.classList.add(isValid ? 'drag-over' : 'drag-invalid');
+// Colore une case selon que le dépôt soit valide ou non.
+function marquerEtatCase(caseTerrain, estValide) {
+    caseTerrain.classList.remove('drag-over', 'drag-invalid');
+    caseTerrain.classList.add(estValide ? 'drag-over' : 'drag-invalid');
 }
 
-function isDropValidOnSlot(slot, card) {
-    if (!slot || !card) return false;
-    return card.joueur.poste === getPosteFromSlot(slot);
+// Vérifie si la carte peut être posée sur cette case.
+function depotValideSurCase(caseTerrain, carte) {
+    if (!caseTerrain || !carte) return false;
+    return carte.joueur.poste === extrairePosteDepuisCase(caseTerrain);
 }
 
-async function addCardToTeam(carteId, poste) {
-    const res = await fetch('/api/moi/equipe/cartes', {
+// Ajoute une carte dans l'équipe via l'API.
+async function ajouterCarteEquipe(idCarte, poste) {
+    const reponse = await fetch('/api/moi/equipe/cartes', {
         method: 'POST',
         credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ carteId, poste })
+        body: JSON.stringify({ carteId: idCarte, poste })
     });
 
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
+    const data = await reponse.json().catch(() => ({}));
+    if (!reponse.ok) {
         throw new Error(data.message || 'Impossible d’ajouter cette carte');
     }
 
     return data;
 }
 
-async function removeFromTeam(carteId) {
-    const res = await fetch(`/api/moi/equipe/cartes/${carteId}`, {
+// Retire une carte de l'équipe via l'API.
+async function retirerCarteEquipe(idCarte) {
+    const reponse = await fetch(`/api/moi/equipe/cartes/${idCarte}`, {
         method: 'DELETE',
         credentials: 'same-origin'
     });
 
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
+    const data = await reponse.json().catch(() => ({}));
+    if (!reponse.ok) {
         throw new Error(data.message || 'Impossible de retirer cette carte');
     }
 
     return data;
 }
 
-async function assignCardToSlot(carteId, slot) {
-    const poste = getPosteFromSlot(slot);
-    const selectedCard = getCardById(carteId);
+// Place une carte dans une case, avec échange si une autre carte occupe déjà la place.
+async function placerCarteDansCase(idCarte, caseTerrain) {
+    const poste = extrairePosteDepuisCase(caseTerrain);
+    const carteChoisie = trouverCarteParId(idCarte);
 
-    if (!selectedCard) {
+    if (!carteChoisie) {
         alert('Carte introuvable');
         return;
     }
 
-    if (!isDropValidOnSlot(slot, selectedCard)) {
-        alert(`Cette carte est ${selectedCard.joueur.poste}, elle ne peut pas aller en ${poste}`);
+    if (!depotValideSurCase(caseTerrain, carteChoisie)) {
+        alert(`Cette carte est ${carteChoisie.joueur.poste}, elle ne peut pas aller en ${poste}`);
         return;
     }
 
-    const occupantId = Number(slot.dataset.carteId || 0);
+    const idOccupant = Number(caseTerrain.dataset.carteId || 0);
 
     try {
-        if (!occupantId) {
-            await addCardToTeam(carteId, poste);
-        } else if (occupantId === Number(carteId)) {
+        if (!idOccupant) {
+            await ajouterCarteEquipe(idCarte, poste);
+        } else if (idOccupant === Number(idCarte)) {
             return;
         } else {
-            const occupantCard = getCardById(occupantId);
-            await removeFromTeam(occupantId);
+            const carteOccupante = trouverCarteParId(idOccupant);
+
+            await retirerCarteEquipe(idOccupant);
+
             try {
-                await addCardToTeam(carteId, poste);
-            } catch (error) {
-                if (occupantCard) {
+                await ajouterCarteEquipe(idCarte, poste);
+            } catch (erreur) {
+                if (carteOccupante) {
                     try {
-                        await addCardToTeam(occupantCard.id, occupantCard.joueur.poste);
-                    } catch (rollbackError) {
-                        console.error('Rollback impossible après échec du swap :', rollbackError);
+                        await ajouterCarteEquipe(carteOccupante.id, carteOccupante.joueur.poste);
+                    } catch (erreurRollback) {
+                        console.error('Rollback impossible après échec du swap :', erreurRollback);
                     }
                 }
-                throw error;
+                throw erreur;
             }
         }
 
-        selectedBenchCardId = null;
-        await loadData();
-    } catch (error) {
-        console.error(error);
-        alert(error.message || 'Erreur réseau');
+        idCarteBancSelectionnee = null;
+        await chargerComposition();
+    } catch (erreur) {
+        console.error(erreur);
+        alert(erreur.message || 'Erreur réseau');
     }
 }
 
-function handleDocumentClick(event) {
-    const removeBtn = event.target.closest('.slot-remove');
-    if (removeBtn) {
-        removeFromTeam(Number(removeBtn.dataset.carteId))
-            .then(() => loadData())
-            .catch(error => {
-                console.error(error);
-                alert(error.message || 'Erreur réseau');
+// Gère les clics sur le document pour le banc et les boutons retirer.
+function gererClicDocument(event) {
+    const boutonRetrait = event.target.closest('.slot-remove');
+    if (boutonRetrait) {
+        retirerCarteEquipe(Number(boutonRetrait.dataset.carteId))
+            .then(() => chargerComposition())
+            .catch((erreur) => {
+                console.error(erreur);
+                alert(erreur.message || 'Erreur réseau');
             });
         return;
     }
 
-    const benchCard = event.target.closest('.bench-player-card');
-    if (benchCard) {
-        selectedBenchCardId = Number(benchCard.dataset.id);
-        refreshBench();
+    const carteBanc = event.target.closest('.bench-player-card');
+    if (carteBanc) {
+        idCarteBancSelectionnee = Number(carteBanc.dataset.id);
+        rafraichirBanc();
         return;
     }
 
-    const slot = event.target.closest('.slot');
-    if (slot && selectedBenchCardId) {
-        assignCardToSlot(selectedBenchCardId, slot);
+    const caseTerrain = event.target.closest('.slot');
+    if (caseTerrain && idCarteBancSelectionnee) {
+        placerCarteDansCase(idCarteBancSelectionnee, caseTerrain);
     }
 }
 
-function handleDragStart(event) {
-    const benchCard = event.target.closest('.bench-player-card');
-    if (benchCard) {
-        draggedCardId = Number(benchCard.dataset.id);
-        draggedFromTeam = false;
-        selectedBenchCardId = draggedCardId;
-        benchCard.classList.add('drag-source', 'selected');
+// Démarre le glisser-déposer en mémorisant la carte concernée.
+function gererDebutDrag(event) {
+    const carteBanc = event.target.closest('.bench-player-card');
+    if (carteBanc) {
+        idCarteGlissee = Number(carteBanc.dataset.id);
+        glisseDepuisEquipe = false;
+        idCarteBancSelectionnee = idCarteGlissee;
+        carteBanc.classList.add('drag-source', 'selected');
         event.dataTransfer.effectAllowed = 'move';
-        event.dataTransfer.setData('text/plain', String(draggedCardId));
+        event.dataTransfer.setData('text/plain', String(idCarteGlissee));
         return;
     }
 
-    const slotCard = event.target.closest('.slot-card');
-    if (slotCard) {
-        draggedCardId = Number(slotCard.dataset.carteId);
-        draggedFromTeam = true;
-        slotCard.classList.add('drag-source');
+    const carteTerrain = event.target.closest('.slot-card');
+    if (carteTerrain) {
+        idCarteGlissee = Number(carteTerrain.dataset.carteId);
+        glisseDepuisEquipe = true;
+        carteTerrain.classList.add('drag-source');
         event.dataTransfer.effectAllowed = 'move';
-        event.dataTransfer.setData('text/plain', String(draggedCardId));
+        event.dataTransfer.setData('text/plain', String(idCarteGlissee));
     }
 }
 
-function handleDragOver(event) {
-    const slot = event.target.closest('.slot');
-    if (slot) {
+// Affiche visuellement les zones de drop autorisées.
+function gererSurvolDrag(event) {
+    const caseTerrain = event.target.closest('.slot');
+    if (caseTerrain) {
         event.preventDefault();
-        const card = getCardById(draggedCardId);
-        const isValid = isDropValidOnSlot(slot, card);
-        event.dataTransfer.dropEffect = isValid ? 'move' : 'none';
-        markSlotState(slot, isValid);
+        const carte = trouverCarteParId(idCarteGlissee);
+        const estValide = depotValideSurCase(caseTerrain, carte);
+        event.dataTransfer.dropEffect = estValide ? 'move' : 'none';
+        marquerEtatCase(caseTerrain, estValide);
         return;
     }
 
-    const benchPlayers = event.target.closest('.bench-players');
-    if (benchPlayers && draggedFromTeam) {
+    const zoneBanc = event.target.closest('.bench-players');
+    if (zoneBanc && glisseDepuisEquipe) {
         event.preventDefault();
-        benchPlayers.classList.add('drag-over');
+        zoneBanc.classList.add('drag-over');
     }
 }
 
-function handleDragLeave(event) {
-    const slot = event.target.closest('.slot');
-    if (slot && !slot.contains(event.relatedTarget)) {
-        slot.classList.remove('drag-over', 'drag-invalid');
+// Nettoie l'effet visuel quand la souris sort d'une zone.
+function gererSortieDrag(event) {
+    const caseTerrain = event.target.closest('.slot');
+    if (caseTerrain && !caseTerrain.contains(event.relatedTarget)) {
+        caseTerrain.classList.remove('drag-over', 'drag-invalid');
         return;
     }
 
-    const benchPlayers = event.target.closest('.bench-players');
-    if (benchPlayers && !benchPlayers.contains(event.relatedTarget)) {
-        benchPlayers.classList.remove('drag-over');
+    const zoneBanc = event.target.closest('.bench-players');
+    if (zoneBanc && !zoneBanc.contains(event.relatedTarget)) {
+        zoneBanc.classList.remove('drag-over');
     }
 }
 
-async function handleDrop(event) {
-    const slot = event.target.closest('.slot');
-    if (slot) {
+// Finalise le drop soit sur le terrain, soit dans le banc.
+async function gererDepot(event) {
+    const caseTerrain = event.target.closest('.slot');
+    if (caseTerrain) {
         event.preventDefault();
-        const cardId = Number(event.dataTransfer.getData('text/plain') || draggedCardId || 0);
-        clearDragState();
-        if (!cardId) return;
-        await assignCardToSlot(cardId, slot);
+        const idCarte = Number(event.dataTransfer.getData('text/plain') || idCarteGlissee || 0);
+        reinitialiserDrag();
+        if (!idCarte) return;
+        await placerCarteDansCase(idCarte, caseTerrain);
         return;
     }
 
-    const benchPlayers = event.target.closest('.bench-players');
-    if (benchPlayers && draggedFromTeam) {
+    const zoneBanc = event.target.closest('.bench-players');
+    if (zoneBanc && glisseDepuisEquipe) {
         event.preventDefault();
-        const cardId = Number(event.dataTransfer.getData('text/plain') || draggedCardId || 0);
-        clearDragState();
-        if (!cardId) return;
+        const idCarte = Number(event.dataTransfer.getData('text/plain') || idCarteGlissee || 0);
+        reinitialiserDrag();
+
+        if (!idCarte) return;
+
         try {
-            await removeFromTeam(cardId);
-            await loadData();
-        } catch (error) {
-            console.error(error);
-            alert(error.message || 'Erreur réseau');
+            await retirerCarteEquipe(idCarte);
+            await chargerComposition();
+        } catch (erreur) {
+            console.error(erreur);
+            alert(erreur.message || 'Erreur réseau');
         }
     }
 }
 
-function handleDragEnd() {
-    clearDragState();
+// Appelé en fin de drag pour nettoyer l'interface.
+function gererFinDrag() {
+    reinitialiserDrag();
 }
 
-async function loadData(options = {}) {
+// Recharge équipe + cartes puis redessine le terrain et le banc.
+async function chargerComposition(options = {}) {
     const { silent = false } = options;
-    if (compositionRequestInFlight || draggedCardId) return;
-    compositionRequestInFlight = true;
+
+    if (requeteCompositionEnCours || idCarteGlissee) return;
+    requeteCompositionEnCours = true;
 
     try {
-        const [teamRes, cardsRes] = await Promise.all([
+        const [reponseEquipe, reponseCartes] = await Promise.all([
             fetch('/api/moi/equipe', { credentials: 'same-origin', cache: 'no-store' }),
             fetch('/api/moi/cartes', { credentials: 'same-origin', cache: 'no-store' })
         ]);
 
-        if (!teamRes.ok || !cardsRes.ok) {
-            if (teamRes.status === 401 || cardsRes.status === 401) {
+        if (!reponseEquipe.ok || !reponseCartes.ok) {
+            if (reponseEquipe.status === 401 || reponseCartes.status === 401) {
                 window.location.href = '/login';
             }
             return;
         }
 
-        cachedTeam = await teamRes.json();
-        cachedCards = await cardsRes.json();
+        equipeCachee = await reponseEquipe.json();
+        cartesCachees = await reponseCartes.json();
 
-        fillSlots(cachedTeam.attaquants || [], '.ligne.attaque .slot');
-        fillSlots(cachedTeam.milieux || [], '.ligne.milieu .slot');
-        fillSlots(cachedTeam.defenseurs || [], '.ligne.defense .slot');
-        fillSlots(cachedTeam.gardiens || [], '.ligne.gardien .slot');
-        refreshBench();
-    } catch (error) {
-        console.error('Erreur chargement composition :', error);
+        remplirCases(equipeCachee.attaquants || [], '.ligne.attaque .slot');
+        remplirCases(equipeCachee.milieux || [], '.ligne.milieu .slot');
+        remplirCases(equipeCachee.defenseurs || [], '.ligne.defense .slot');
+        remplirCases(equipeCachee.gardiens || [], '.ligne.gardien .slot');
+
+        rafraichirBanc();
+    } catch (erreur) {
+        console.error('Erreur chargement composition :', erreur);
         if (!silent) alert('Impossible de charger la composition');
     } finally {
-        compositionRequestInFlight = false;
+        requeteCompositionEnCours = false;
     }
 }
 
-function startCompositionAutoRefresh() {
-    if (compositionRefreshTimer) clearInterval(compositionRefreshTimer);
-    compositionRefreshTimer = setInterval(() => loadData({ silent: true }), COMPOSITION_REFRESH_MS);
+// Lance le rafraîchissement automatique de la composition.
+function demarrerRafraichissementComposition() {
+    if (timerComposition) clearInterval(timerComposition);
+
+    timerComposition = setInterval(() => {
+        chargerComposition({ silent: true });
+    }, DELAI_RAFRAICHISSEMENT_COMPOSITION);
+
     document.addEventListener('visibilitychange', () => {
         if (!document.hidden) {
-            loadData({ silent: true });
+            chargerComposition({ silent: true });
         }
     });
 }
 
-(function injectStyles() {
+// Injecte les petits styles nécessaires au drag & drop.
+(function injecterStylesComposition() {
     const style = document.createElement('style');
     style.textContent = `
       .bench-player-card.selected { outline: 3px solid #ffd700; transform: scale(1.03); }
@@ -453,21 +494,21 @@ function startCompositionAutoRefresh() {
 })();
 
 document.getElementById('benchSearch')?.addEventListener('input', (event) => {
-    benchSearchValue = event.target.value.trim().toLowerCase();
-    refreshBench();
+    rechercheBanc = event.target.value.trim().toLowerCase();
+    rafraichirBanc();
 });
 
 document.getElementById('benchPosition')?.addEventListener('change', (event) => {
-    benchPositionValue = event.target.value;
-    refreshBench();
+    filtrePosteBanc = event.target.value;
+    rafraichirBanc();
 });
 
-document.addEventListener('click', handleDocumentClick);
-document.addEventListener('dragstart', handleDragStart);
-document.addEventListener('dragover', handleDragOver);
-document.addEventListener('dragleave', handleDragLeave);
-document.addEventListener('drop', handleDrop);
-document.addEventListener('dragend', handleDragEnd);
+document.addEventListener('click', gererClicDocument);
+document.addEventListener('dragstart', gererDebutDrag);
+document.addEventListener('dragover', gererSurvolDrag);
+document.addEventListener('dragleave', gererSortieDrag);
+document.addEventListener('drop', gererDepot);
+document.addEventListener('dragend', gererFinDrag);
 
-loadData().catch(err => console.error(err));
-startCompositionAutoRefresh();
+chargerComposition().catch(err => console.error(err));
+demarrerRafraichissementComposition();

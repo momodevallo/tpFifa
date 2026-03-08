@@ -1,9 +1,10 @@
 import pool from '../config/db.js';
-import { getPackTypeById } from '../models/packModel.js';
-import { getOrCreateWallet, updateCredits, hasEnoughCredits } from '../models/walletModel.js';
-import { addCardToUser } from '../models/carteModel.js';
+import { recupererTypePackParId } from '../models/packModel.js';
+import { recupererOuCreerPortefeuille, modifierCredits, possedeAssezDeCredits } from '../models/walletModel.js';
+import { ajouterCarteUtilisateur } from '../models/carteModel.js';
 
-export async function openPack(req, res) {
+// Ouvre un pack, retire les crédits puis ajoute les cartes obtenues à l'utilisateur.
+export async function ouvrirPackJoueur(req, res) {
     try {
         const { userId, packId } = req.body;
 
@@ -11,65 +12,64 @@ export async function openPack(req, res) {
             return res.status(400).json({ message: 'userId et packId requis' });
         }
 
-        const packType = await getPackTypeById(packId);
-        if (!packType) {
+        const typePack = await recupererTypePackParId(packId);
+        if (!typePack) {
             return res.status(404).json({ message: 'Pack non trouvé' });
         }
 
-        const hasCredits = await hasEnoughCredits(userId, packType.prix);
-        if (!hasCredits) {
+        const assezDeCredits = await possedeAssezDeCredits(userId, typePack.prix);
+        if (!assezDeCredits) {
             return res.status(400).json({ message: 'Crédits insuffisants' });
         }
 
-        await updateCredits(userId, -packType.prix);
+        await modifierCredits(userId, -typePack.prix);
 
-        const cards = [];
-        const { nb_cartes, pct_bronze, pct_argent, pct_or } = packType;
+        const cartes = [];
+        const { nb_cartes, pct_bronze, pct_argent } = typePack;
 
         for (let i = 0; i < nb_cartes; i++) {
-            const rand = Math.random() * 100;
-            let quality;
-            
-            if (rand < pct_bronze) {
-                quality = 'bronze';
-            } else if (rand < pct_bronze + pct_argent) {
-                quality = 'argent';
-            } else {
-                quality = 'or';
+            const tirage = Math.random() * 100;
+            let qualite = 'or';
+
+            if (tirage < pct_bronze) {
+                qualite = 'bronze';
+            } else if (tirage < pct_bronze + pct_argent) {
+                qualite = 'argent';
             }
 
-            const [players] = await pool.query(
+            const [joueurs] = await pool.query(
                 'SELECT * FROM joueurs WHERE qualite = ? ORDER BY RAND() LIMIT 1',
-                [quality]
+                [qualite]
             );
 
-            if (players.length > 0) {
-                const player = players[0];
+            if (joueurs.length > 0) {
+                const joueur = joueurs[0];
+
                 try {
-                    const carteId = await addCardToUser(userId, player.id);
-                    cards.push({
-                        carte_id: carteId,
-                        ...player
+                    const idCarte = await ajouterCarteUtilisateur(userId, joueur.id);
+                    cartes.push({
+                        carte_id: idCarte,
+                        ...joueur
                     });
-                } catch (err) {
-                    if (err.message.includes('déjà')) {
+                } catch (erreur) {
+                    if (erreur.message.includes('déjà')) {
                         i--;
                         continue;
                     }
-                    throw err;
+                    throw erreur;
                 }
             }
         }
 
-        const wallet = await getOrCreateWallet(userId);
+        const portefeuille = await recupererOuCreerPortefeuille(userId);
 
         return res.status(200).json({
             message: 'Pack ouvert avec succès',
-            cards,
-            credits: wallet.credits
+            cards: cartes,
+            credits: portefeuille.credits
         });
-    } catch (err) {
-        console.error('Erreur openPack:', err);
+    } catch (erreur) {
+        console.error('Erreur ouvrirPackJoueur:', erreur);
         return res.status(500).json({ message: 'Erreur serveur' });
     }
 }

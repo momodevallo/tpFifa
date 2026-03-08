@@ -1,10 +1,11 @@
 import { Router } from 'express';
-import { getMarketListings, sellCard, buyCard } from '../controllers/marketplaceController.js';
+import { recupererAnnoncesMarche, vendreCarte, acheterCarte } from '../controllers/marketplaceController.js';
 
 const router = Router();
 
-router.get('/listings', getMarketListings);
-router.post('/sell', sellCard);
-router.post('/buy', buyCard);
+// Routes du marché.
+router.get('/listings', recupererAnnoncesMarche);
+router.post('/sell', vendreCarte);
+router.post('/buy', acheterCarte);
 
 export default router;

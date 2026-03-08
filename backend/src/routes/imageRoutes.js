@@ -1,41 +1,40 @@
 import { Router } from 'express';
 import fetch from 'node-fetch';
-import { findPlayerById } from '../models/playerModel.js';
+import { trouverJoueurParId } from '../models/playerModel.js';
 
 const router = Router();
 
+// Proxy d'image joueur pour éviter les problèmes de CORS côté front.
 router.get('/player-image/:id', async (req, res) => {
     const { id } = req.params;
 
     try {
-        const player = await findPlayerById(id);
+        const joueur = await trouverJoueurParId(id);
 
-        if (!player || !player.image_url) {
+        if (!joueur || !joueur.image_url) {
             return res.status(404).send('Image non trouvée');
         }
 
-        const remoteRes = await fetch(player.image_url);
+        const reponseDistante = await fetch(joueur.image_url);
 
-        if (!remoteRes.ok) {
+        if (!reponseDistante.ok) {
             console.error(
                 'Erreur fetch image distante:',
-                remoteRes.status,
-                remoteRes.statusText
+                reponseDistante.status,
+                reponseDistante.statusText
             );
-            return res
-                .status(remoteRes.status)
-                .send('Impossible de récupérer l’image distante');
+            return res.status(reponseDistante.status).send('Impossible de récupérer l’image distante');
         }
 
         res.setHeader(
             'Content-Type',
-            remoteRes.headers.get('content-type') || 'image/png'
+            reponseDistante.headers.get('content-type') || 'image/png'
         );
 
-        const buffer = await remoteRes.arrayBuffer();
+        const buffer = await reponseDistante.arrayBuffer();
         res.send(Buffer.from(buffer));
-    } catch (err) {
-        console.error('Erreur proxy image:', err);
+    } catch (erreur) {
+        console.error('Erreur proxy image:', erreur);
         res.status(500).send('Erreur serveur image');
     }
 });

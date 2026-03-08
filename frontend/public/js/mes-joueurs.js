@@ -1,11 +1,12 @@
-let allCards = [];
-let currentSearch = '';
-let currentPosition = 'all';
-let myCardsRefreshTimer = null;
-let myCardsRequestInFlight = false;
-const MY_CARDS_REFRESH_MS = 4000;
+let toutesLesCartes = [];
+let rechercheCourante = '';
+let filtrePosteCourant = 'all';
+let timerMesJoueurs = null;
+let requeteMesJoueursEnCours = false;
+const DELAI_RAFRAICHISSEMENT_MES_JOUEURS = 4000;
 
-function getFallbackPlayerImageSrc() {
+// Image locale de secours quand un portrait joueur manque.
+function creerImageJoueurParDefaut() {
     return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
         <svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240">
             <defs>
@@ -22,117 +23,132 @@ function getFallbackPlayerImageSrc() {
     `)}`;
 }
 
-function getPlayerImageSrc(joueur) {
+// Retourne l'image à afficher pour le joueur.
+function donnerImageJoueur(joueur) {
     if (!joueur) return '';
     if (joueur.id) return `/player-image/${joueur.id}`;
     return joueur.imageUrl || '';
 }
 
-function renderCards() {
-    const filteredCards = allCards.filter(card => {
-        const matchesSearch = !currentSearch || card.joueur.nom.toLowerCase().includes(currentSearch);
-        const matchesPosition = currentPosition === 'all' || card.joueur.poste === currentPosition;
-        return matchesSearch && matchesPosition;
+// Affiche les cartes possédées avec filtres recherche + poste.
+function afficherCartes() {
+    const cartesFiltrees = toutesLesCartes.filter((carte) => {
+        const okRecherche = !rechercheCourante || carte.joueur.nom.toLowerCase().includes(rechercheCourante);
+        const okPoste = filtrePosteCourant === 'all' || carte.joueur.poste === filtrePosteCourant;
+        return okRecherche && okPoste;
     });
 
-    document.getElementById('totalPlayers').textContent = allCards.length;
+    document.getElementById('totalPlayers').textContent = toutesLesCartes.length;
 
-    const grid = document.querySelector('.players-grid');
-    if (!filteredCards.length) {
-        grid.innerHTML = '<div class="player-empty">Aucun joueur trouvé.</div>';
+    const grille = document.querySelector('.players-grid');
+    if (!cartesFiltrees.length) {
+        grille.innerHTML = '<div class="player-empty">Aucun joueur trouvé.</div>';
         return;
     }
 
-    grid.innerHTML = filteredCards.map(card => `
-        <div class="player-card" data-position="${card.joueur.poste}">
-            <div class="rating">${card.joueur.note}</div>
-            <img src="${getPlayerImageSrc(card.joueur)}" alt="${card.joueur.nom}"
-                 onerror="this.onerror=null; this.src=getFallbackPlayerImageSrc();">
+    grille.innerHTML = cartesFiltrees.map((carte) => `
+        <div class="player-card" data-position="${carte.joueur.poste}">
+            <div class="rating">${carte.joueur.note}</div>
+            <img src="${donnerImageJoueur(carte.joueur)}" alt="${carte.joueur.nom}"
+                 onerror="this.onerror=null; this.src=creerImageJoueurParDefaut();">
             <div class="player-info">
-                <span class="name">${card.joueur.nom}</span>
-                <span class="position">${card.joueur.poste}</span>
-                <span class="club">${card.joueur.club || ''}</span>
+                <span class="name">${carte.joueur.nom}</span>
+                <span class="position">${carte.joueur.poste}</span>
+                <span class="club">${carte.joueur.club || ''}</span>
             </div>
-            ${card.nonEchangeable
+            ${carte.nonEchangeable
                 ? '<button class="btn-sell" disabled>Non échangeable</button>'
-                : `<button class="btn-sell" onclick="sellCard(${card.id})">Vendre</button>`}
+                : `<button class="btn-sell" onclick="mettreCarteEnVente(${carte.id})">Vendre</button>`}
         </div>
     `).join('');
 }
 
-async function loadMyCards(options = {}) {
+// Charge les cartes de l'utilisateur et son solde.
+async function chargerMesCartes(options = {}) {
     const { silent = false } = options;
-    if (myCardsRequestInFlight) return;
-    myCardsRequestInFlight = true;
+
+    if (requeteMesJoueursEnCours) return;
+    requeteMesJoueursEnCours = true;
 
     try {
-        const res = await fetch('/api/moi/cartes', { credentials: 'same-origin', cache: 'no-store' });
-        if (!res.ok) {
-            if (res.status === 401) window.location.href = '/login';
+        const reponse = await fetch('/api/moi/cartes', { credentials: 'same-origin', cache: 'no-store' });
+        if (!reponse.ok) {
+            if (reponse.status === 401) window.location.href = '/login';
             return;
         }
 
-        allCards = await res.json();
+        toutesLesCartes = await reponse.json();
 
         try {
-            const creditsRes = await fetch('/api/moi/credits', { credentials: 'same-origin', cache: 'no-store' });
-            const credits = await creditsRes.json();
+            const reponseCredits = await fetch('/api/moi/credits', { credentials: 'same-origin', cache: 'no-store' });
+            const credits = await reponseCredits.json();
             document.getElementById('money').textContent = credits.credits;
-        } catch (_) {}
+        } catch (_erreurCredits) {}
 
-        renderCards();
-    } catch (error) {
-        console.error('Erreur chargement mes joueurs :', error);
+        afficherCartes();
+    } catch (erreur) {
+        console.error('Erreur chargement mes joueurs :', erreur);
         if (!silent) {
-            const grid = document.querySelector('.players-grid');
-            if (grid) grid.innerHTML = '<div class="player-empty">Impossible de charger les joueurs.</div>';
+            const grille = document.querySelector('.players-grid');
+            if (grille) grille.innerHTML = '<div class="player-empty">Impossible de charger les joueurs.</div>';
         }
     } finally {
-        myCardsRequestInFlight = false;
+        requeteMesJoueursEnCours = false;
     }
 }
 
-function startMyCardsAutoRefresh() {
-    if (myCardsRefreshTimer) clearInterval(myCardsRefreshTimer);
-    myCardsRefreshTimer = setInterval(() => loadMyCards({ silent: true }), MY_CARDS_REFRESH_MS);
+// Lance le rafraîchissement auto de la page "Mes joueurs".
+function demarrerRafraichissementMesCartes() {
+    if (timerMesJoueurs) clearInterval(timerMesJoueurs);
+
+    timerMesJoueurs = setInterval(() => {
+        chargerMesCartes({ silent: true });
+    }, DELAI_RAFRAICHISSEMENT_MES_JOUEURS);
+
     document.addEventListener('visibilitychange', () => {
         if (!document.hidden) {
-            loadMyCards({ silent: true });
+            chargerMesCartes({ silent: true });
         }
     });
 }
 
-async function sellCard(carteId) {
+// Envoie une carte vers le marché avec le prix choisi par l'utilisateur.
+async function mettreCarteEnVente(idCarte) {
     const prix = prompt('Prix de vente ?');
     if (!prix || Number(prix) <= 0) return;
 
-    const res = await fetch('/api/marketplace/annonces', {
+    const reponse = await fetch('/api/marketplace/annonces', {
         method: 'POST',
         credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ carteId, prix: parseInt(prix, 10) })
+        body: JSON.stringify({ carteId: idCarte, prix: parseInt(prix, 10) })
     });
 
     let data;
-    try { data = await res.json(); } catch { data = null; }
-    if (!res.ok) {
+    try {
+        data = await reponse.json();
+    } catch (_erreurLecture) {
+        data = null;
+    }
+
+    if (!reponse.ok) {
         alert(data?.message || data?.error || 'Impossible de mettre en vente');
         return;
     }
 
     alert('Carte mise en vente');
-    loadMyCards({ silent: true });
+    chargerMesCartes({ silent: true });
 }
 
 document.getElementById('search')?.addEventListener('input', (event) => {
-    currentSearch = event.target.value.trim().toLowerCase();
-    renderCards();
+    rechercheCourante = event.target.value.trim().toLowerCase();
+    afficherCartes();
 });
 
 document.getElementById('filterPosition')?.addEventListener('change', (event) => {
-    currentPosition = event.target.value;
-    renderCards();
+    filtrePosteCourant = event.target.value;
+    afficherCartes();
 });
 
-loadMyCards();
-startMyCardsAutoRefresh();
+chargerMesCartes();
+demarrerRafraichissementMesCartes();

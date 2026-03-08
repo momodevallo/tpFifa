@@ -1,11 +1,12 @@
 import { Router } from 'express';
 import path from 'path';
+
 const router = Router();
 
+// Sert la page d'accueil principale.
 export default (publicPath) => {
-    // les pages html
-    router.get('/accueil', (req, res) => {
-        res.sendFile(path.join(publicPath,'accueil.html'));
+    router.get('/accueil', (_req, res) => {
+        res.sendFile(path.join(publicPath, 'accueil.html'));
     });
 
     return router;

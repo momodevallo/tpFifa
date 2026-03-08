@@ -1,8 +1,9 @@
 import { Router } from 'express';
-import { openPack } from '../controllers/joueursController.js';
+import { ouvrirPackJoueur } from '../controllers/joueursController.js';
 
 const router = Router();
 
-router.post('/open-pack', openPack);
+// Route qui déclenche l'ouverture d'un pack.
+router.post('/open-pack', ouvrirPackJoueur);
 
 export default router;

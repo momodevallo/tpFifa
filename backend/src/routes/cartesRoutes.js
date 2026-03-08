@@ -1,8 +1,9 @@
 import { Router } from 'express';
-import { getMyCards } from '../controllers/cartesController.js';
+import { recupererMesCartes } from '../controllers/cartesController.js';
 
 const router = Router();
 
-router.get('/my-cards', getMyCards);
+// Route simple pour récupérer les cartes d'un utilisateur.
+router.get('/my-cards', recupererMesCartes);
 
 export default router;

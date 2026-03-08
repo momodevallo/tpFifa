@@ -1,20 +1,21 @@
 import { Router } from 'express';
 import path from 'path';
-import { register } from '../controllers/userController.js';
-import { login } from '../controllers/userController.js';
+import { inscrireUtilisateur, connecterUtilisateur } from '../controllers/userController.js';
+
 const router = Router();
 
+// Monte les routes d'authentification HTML + API.
 export default (publicPath) => {
-    // les pages html
-    router.get('/login', (req, res) => {
+    router.get('/login', (_req, res) => {
         res.sendFile(path.join(publicPath, 'auth', 'login.html'));
     });
 
-    router.get('/register', (req, res) => {
+    router.get('/register', (_req, res) => {
         res.sendFile(path.join(publicPath, 'auth', 'register.html'));
     });
 
-    router.post('/register', register);
-    router.post('/login', login);
+    router.post('/register', inscrireUtilisateur);
+    router.post('/login', connecterUtilisateur);
+
     return router;
 };

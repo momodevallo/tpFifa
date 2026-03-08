@@ -1,12 +1,13 @@
-let currentUser = null;
-let allListings = [];
-let marketSearch = '';
-let marketPosition = 'all';
-let marketRefreshTimer = null;
-let marketRequestInFlight = false;
-const MARKET_REFRESH_MS = 2000;
+let utilisateurCourant = null;
+let toutesLesAnnonces = [];
+let rechercheMarche = '';
+let filtrePosteMarche = 'all';
+let timerMarche = null;
+let requeteMarcheEnCours = false;
+const DELAI_RAFRAICHISSEMENT_MARCHE = 2000;
 
-function getFallbackPlayerImageSrc() {
+// Image locale utilisée quand une vraie photo ne répond pas.
+function creerImageJoueurParDefaut() {
     return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
         <svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240">
             <defs>
@@ -23,147 +24,170 @@ function getFallbackPlayerImageSrc() {
     `)}`;
 }
 
-function getPlayerImageSrc(joueur) {
+// Donne le meilleur chemin d'image pour un joueur.
+function donnerImageJoueur(joueur) {
     if (!joueur) return '';
     if (joueur.id) return `/player-image/${joueur.id}`;
     return joueur.imageUrl || '';
 }
 
-function renderMarketListings() {
-    const list = document.querySelector('.players-list');
+// Affiche les annonces du marché selon les filtres actuels.
+function afficherAnnoncesMarche() {
+    const liste = document.querySelector('.players-list');
 
-    const filteredListings = allListings.filter(l => {
-        const joueur = l.carte.joueur;
-        const matchesSearch = !marketSearch || joueur.nom.toLowerCase().includes(marketSearch);
-        const matchesPosition = marketPosition === 'all' || joueur.poste === marketPosition;
-        return matchesSearch && matchesPosition;
+    const annoncesFiltrees = toutesLesAnnonces.filter((annonce) => {
+        const joueur = annonce.carte.joueur;
+        const okRecherche = !rechercheMarche || joueur.nom.toLowerCase().includes(rechercheMarche);
+        const okPoste = filtrePosteMarche === 'all' || joueur.poste === filtrePosteMarche;
+        return okRecherche && okPoste;
     });
 
-    if (!filteredListings.length) {
-        list.innerHTML = '<div class="market-empty">Aucun joueur trouvé sur le marché.</div>';
+    if (!annoncesFiltrees.length) {
+        liste.innerHTML = '<div class="market-empty">Aucun joueur trouvé sur le marché.</div>';
         return;
     }
 
-    list.innerHTML = filteredListings.map(l => {
-        const ownListing = currentUser && l.vendeurId === currentUser.id;
+    liste.innerHTML = annoncesFiltrees.map((annonce) => {
+        const estMonAnnonce = utilisateurCourant && annonce.vendeurId === utilisateurCourant.id;
+
         return `
         <div class="player-card">
             <div class="player-image">
-                <img src="${getPlayerImageSrc(l.carte.joueur)}" alt="${l.carte.joueur.nom}"
-                     onerror="this.onerror=null; this.src=getFallbackPlayerImageSrc();">
-                <div class="player-rating">${l.carte.joueur.note}</div>
+                <img src="${donnerImageJoueur(annonce.carte.joueur)}" alt="${annonce.carte.joueur.nom}"
+                     onerror="this.onerror=null; this.src=creerImageJoueurParDefaut();">
+                <div class="player-rating">${annonce.carte.joueur.note}</div>
             </div>
             <div class="player-details">
-                <h3 class="player-name">${l.carte.joueur.nom}</h3>
+                <h3 class="player-name">${annonce.carte.joueur.nom}</h3>
                 <div class="player-meta">
-                    <span class="player-position">${l.carte.joueur.poste}</span>
-                    <span class="player-club">${l.carte.joueur.club || ''}</span>
+                    <span class="player-position">${annonce.carte.joueur.poste}</span>
+                    <span class="player-club">${annonce.carte.joueur.club || ''}</span>
                 </div>
-                <div style="font-size: 0.9rem; color: #888;">Vendeur: ${l.vendeurPseudo}</div>
+                <div style="font-size: 0.9rem; color: #888;">Vendeur: ${annonce.vendeurPseudo}</div>
             </div>
             <div class="player-actions">
-                <div class="player-price"><span>${l.prix} crédits</span></div>
-                ${ownListing
-                    ? `<button class="btn-buy-player" onclick="removeListing(${l.id})">Retirer</button>`
-                    : `<button class="btn-buy-player" onclick="buyPlayer(${l.id}, ${l.prix})">Acheter</button>`}
+                <div class="player-price"><span>${annonce.prix} crédits</span></div>
+                ${estMonAnnonce
+                    ? `<button class="btn-buy-player" onclick="retirerAnnonce(${annonce.id})">Retirer</button>`
+                    : `<button class="btn-buy-player" onclick="acheterAnnonce(${annonce.id}, ${annonce.prix})">Acheter</button>`}
             </div>
         </div>`;
     }).join('');
 }
 
-async function loadMarketListings(options = {}) {
+// Charge les annonces du marché et les infos utilisateur.
+async function chargerAnnoncesMarche(options = {}) {
     const { silent = false } = options;
 
-    if (marketRequestInFlight) return;
-    marketRequestInFlight = true;
+    if (requeteMarcheEnCours) return;
+    requeteMarcheEnCours = true;
 
     try {
-        const [marketRes, meRes] = await Promise.all([
+        const [reponseMarche, reponseMoi] = await Promise.all([
             fetch('/api/marketplace', { credentials: 'same-origin', cache: 'no-store' }),
             fetch('/api/moi', { credentials: 'same-origin', cache: 'no-store' })
         ]);
 
-        if (!marketRes.ok || !meRes.ok) {
-            if (marketRes.status === 401 || meRes.status === 401) window.location.href = '/login';
+        if (!reponseMarche.ok || !reponseMoi.ok) {
+            if (reponseMarche.status === 401 || reponseMoi.status === 401) {
+                window.location.href = '/login';
+            }
             return;
         }
 
-        currentUser = await meRes.json();
-        allListings = await marketRes.json();
-        renderMarketListings();
-    } catch (error) {
-        console.error('Erreur chargement marché :', error);
+        utilisateurCourant = await reponseMoi.json();
+        toutesLesAnnonces = await reponseMarche.json();
+        afficherAnnoncesMarche();
+    } catch (erreur) {
+        console.error('Erreur chargement marché :', erreur);
         if (!silent) {
-            const list = document.querySelector('.players-list');
-            if (list) list.innerHTML = '<div class="market-empty">Impossible de charger le marché.</div>';
+            const liste = document.querySelector('.players-list');
+            if (liste) liste.innerHTML = '<div class="market-empty">Impossible de charger le marché.</div>';
         }
     } finally {
-        marketRequestInFlight = false;
+        requeteMarcheEnCours = false;
     }
 }
 
-function startMarketAutoRefresh() {
-    if (marketRefreshTimer) clearInterval(marketRefreshTimer);
-    marketRefreshTimer = setInterval(() => loadMarketListings({ silent: true }), MARKET_REFRESH_MS);
+// Met à jour régulièrement le marché sans recharger la page.
+function demarrerRafraichissementMarche() {
+    if (timerMarche) clearInterval(timerMarche);
+
+    timerMarche = setInterval(() => {
+        chargerAnnoncesMarche({ silent: true });
+    }, DELAI_RAFRAICHISSEMENT_MARCHE);
 
     document.addEventListener('visibilitychange', () => {
         if (!document.hidden) {
-            loadMarketListings({ silent: true });
+            chargerAnnoncesMarche({ silent: true });
         }
     });
 }
 
-async function buyPlayer(annonceId, price) {
-    if (!confirm(`Acheter pour ${price} crédits ?`)) return;
+// Achète une annonce du marché après confirmation.
+async function acheterAnnonce(idAnnonce, prix) {
+    if (!confirm(`Acheter pour ${prix} crédits ?`)) return;
 
-    const res = await fetch(`/api/marketplace/annonces/${annonceId}/acheter`, {
+    const reponse = await fetch(`/api/marketplace/annonces/${idAnnonce}/acheter`, {
         method: 'POST',
         credentials: 'same-origin'
     });
 
     let data;
-    try { data = await res.json(); } catch { data = null; }
-    if (!res.ok) {
+    try {
+        data = await reponse.json();
+    } catch (_erreurLecture) {
+        data = null;
+    }
+
+    if (!reponse.ok) {
         alert(data?.message || data?.error || 'Impossible d\'acheter ce joueur');
         return;
     }
 
     alert(data?.message || 'Achat effectué');
-    loadMarketListings({ silent: true });
+    chargerAnnoncesMarche({ silent: true });
+
     try {
         const credits = await (await fetch('/api/moi/credits', { credentials: 'same-origin' })).json();
         document.getElementById('money').textContent = credits.credits;
-    } catch (_) {}
+    } catch (_erreurCredits) {}
 }
 
-async function removeListing(annonceId) {
+// Retire une annonce appartenant au joueur connecté.
+async function retirerAnnonce(idAnnonce) {
     if (!confirm('Retirer cette annonce du marché ?')) return;
 
-    const res = await fetch(`/api/marketplace/annonces/${annonceId}`, {
+    const reponse = await fetch(`/api/marketplace/annonces/${idAnnonce}`, {
         method: 'DELETE',
         credentials: 'same-origin'
     });
 
     let data;
-    try { data = await res.json(); } catch { data = null; }
-    if (!res.ok) {
+    try {
+        data = await reponse.json();
+    } catch (_erreurLecture) {
+        data = null;
+    }
+
+    if (!reponse.ok) {
         alert(data?.message || data?.error || 'Impossible de retirer cette annonce');
         return;
     }
 
     alert(data?.message || 'Annonce supprimée');
-    loadMarketListings({ silent: true });
+    chargerAnnoncesMarche({ silent: true });
 }
 
 document.getElementById('search')?.addEventListener('input', (event) => {
-    marketSearch = event.target.value.trim().toLowerCase();
-    renderMarketListings();
+    rechercheMarche = event.target.value.trim().toLowerCase();
+    afficherAnnoncesMarche();
 });
 
 document.getElementById('marketPosition')?.addEventListener('change', (event) => {
-    marketPosition = event.target.value;
-    renderMarketListings();
+    filtrePosteMarche = event.target.value;
+    afficherAnnoncesMarche();
 });
 
-loadMarketListings();
-startMarketAutoRefresh();
+chargerAnnoncesMarche();
+demarrerRafraichissementMarche();

@@ -1,9 +1,11 @@
 (function () {
-    const HEADER_REFRESH_MS = 5000;
-    let headerRefreshTimer = null;
-    const mount = document.getElementById('tp-header');
-    if (!mount) return;
+    const DELAI_RAFRAICHISSEMENT_HEADER = 5000;
+    let timerHeader = null;
+    const zoneHeader = document.getElementById('tp-header');
 
+    if (!zoneHeader) return;
+
+    // Injecte les styles minimums du header si la page n'en a pas encore.
     if (!document.getElementById('tp-header-styles')) {
         const style = document.createElement('style');
         style.id = 'tp-header-styles';
@@ -22,7 +24,7 @@
         document.head.appendChild(style);
     }
 
-    mount.innerHTML = `
+    zoneHeader.innerHTML = `
     <header class="tp-header-simple">
       <div class="tp-header-left">
         <span class="greeting">Salut <strong id="pseudo">Joueur</strong></span>
@@ -44,104 +46,119 @@
   `;
 
     document.querySelectorAll('.main-nav .nav-btn[data-href]').forEach((btn) => {
-        btn.addEventListener('click', () => (window.location.href = btn.dataset.href));
+        btn.addEventListener('click', () => {
+            window.location.href = btn.dataset.href;
+        });
     });
 
-    const p = window.location.pathname;
-    const current =
-        p.includes('boutique') ? 'boutique' :
-        p.includes('marche') ? 'marche' :
-        p.includes('composition') ? 'composition' :
-        p.includes('mes-joueurs') ? 'mes-joueurs' :
-        p.includes('accueil') ? 'accueil' : '';
+    const chemin = window.location.pathname;
+    const pageActive =
+        chemin.includes('boutique') ? 'boutique' :
+        chemin.includes('marche') ? 'marche' :
+        chemin.includes('composition') ? 'composition' :
+        chemin.includes('mes-joueurs') ? 'mes-joueurs' :
+        chemin.includes('accueil') ? 'accueil' : '';
 
-    document.querySelectorAll('.main-nav .nav-btn').forEach((b) => b.classList.remove('active'));
-    const activeBtn = document.querySelector(`.main-nav .nav-btn[data-page="${current}"]`);
-    if (activeBtn) activeBtn.classList.add('active');
+    document.querySelectorAll('.main-nav .nav-btn').forEach((bouton) => {
+        bouton.classList.remove('active');
+    });
 
-    function getResponseKind(res) {
-        const contentType = (res.headers.get('content-type') || '').toLowerCase();
-        if (res.status === 401 || res.status === 403) return 'unauthorized';
-        if (res.redirected || res.url.includes('/login')) return 'login-page';
-        if (contentType.includes('application/json')) return 'json';
-        if (contentType.includes('text/html')) return 'html';
-        return 'other';
+    const boutonActif = document.querySelector(`.main-nav .nav-btn[data-page="${pageActive}"]`);
+    if (boutonActif) boutonActif.classList.add('active');
+
+    // Devine le type de réponse reçu pour savoir si on peut lire du JSON.
+    function determinerTypeReponse(reponse) {
+        const typeContenu = (reponse.headers.get('content-type') || '').toLowerCase();
+        if (reponse.status === 401 || reponse.status === 403) return 'non-auth';
+        if (reponse.redirected || reponse.url.includes('/login')) return 'page-login';
+        if (typeContenu.includes('application/json')) return 'json';
+        if (typeContenu.includes('text/html')) return 'html';
+        return 'autre';
     }
 
-    async function safeJsonFetch(url, options = {}) {
-        const res = await fetch(url, { credentials: 'same-origin', ...options });
-        const kind = getResponseKind(res);
+    // Fait un fetch JSON et redirige vers login si la session a expiré.
+    async function recupererJsonSecurise(url, options = {}) {
+        const reponse = await fetch(url, { credentials: 'same-origin', ...options });
+        const typeReponse = determinerTypeReponse(reponse);
 
-        if (kind === 'unauthorized' || kind === 'login-page') {
+        if (typeReponse === 'non-auth' || typeReponse === 'page-login') {
             window.location.href = '/login';
             return null;
         }
 
-        if (!res.ok) {
-            let message = `Erreur ${res.status}`;
+        if (!reponse.ok) {
+            let message = `Erreur ${reponse.status}`;
             try {
-                if (kind === 'json') {
-                    const data = await res.json();
+                if (typeReponse === 'json') {
+                    const data = await reponse.json();
                     message = data?.message || data?.error || message;
                 }
-            } catch (_) {}
+            } catch (_erreurLecture) {}
             throw new Error(message);
         }
 
-        if (kind !== 'json') {
+        if (typeReponse !== 'json') {
             throw new Error('Réponse invalide du serveur');
         }
 
-        return res.json();
+        return reponse.json();
     }
 
-    async function loadUserInfo() {
+    // Charge le pseudo et le nombre de crédits affichés dans le header.
+    async function chargerInfosUtilisateur() {
         try {
-            const [user, credits] = await Promise.all([
-                safeJsonFetch('/api/moi'),
-                safeJsonFetch('/api/moi/credits')
+            const [utilisateur, credits] = await Promise.all([
+                recupererJsonSecurise('/api/moi'),
+                recupererJsonSecurise('/api/moi/credits')
             ]);
 
-            if (!user || !credits) return;
-            document.getElementById('pseudo').textContent = user.pseudo;
+            if (!utilisateur || !credits) return;
+
+            document.getElementById('pseudo').textContent = utilisateur.pseudo;
             document.getElementById('money').textContent = credits.credits;
-        } catch (e) {
-            console.error('Erreur chargement session :', e);
+        } catch (erreur) {
+            console.error('Erreur chargement session :', erreur);
             document.getElementById('money').textContent = 'Erreur';
         }
     }
 
-    loadUserInfo();
+    // Met à jour automatiquement le header tant que la page reste ouverte.
+    function demarrerRafraichissementHeader() {
+        if (timerHeader) clearInterval(timerHeader);
 
-    function startHeaderAutoRefresh() {
-        if (headerRefreshTimer) clearInterval(headerRefreshTimer);
-        headerRefreshTimer = setInterval(() => loadUserInfo().catch(() => {}), HEADER_REFRESH_MS);
+        timerHeader = setInterval(() => {
+            chargerInfosUtilisateur().catch(() => {});
+        }, DELAI_RAFRAICHISSEMENT_HEADER);
+
         document.addEventListener('visibilitychange', () => {
-            if (!document.hidden) loadUserInfo().catch(() => {});
+            if (!document.hidden) {
+                chargerInfosUtilisateur().catch(() => {});
+            }
         });
     }
 
-    startHeaderAutoRefresh();
+    chargerInfosUtilisateur();
+    demarrerRafraichissementHeader();
 
-    const regenBtn = document.getElementById('regenCredits');
-    regenBtn?.addEventListener('click', async () => {
+    const boutonRegen = document.getElementById('regenCredits');
+    boutonRegen?.addEventListener('click', async () => {
         try {
-            regenBtn.disabled = true;
-            const data = await safeJsonFetch('/api/moi/credits/regenerer', { method: 'POST' });
+            boutonRegen.disabled = true;
+            const data = await recupererJsonSecurise('/api/moi/credits/regenerer', { method: 'POST' });
             if (data) {
                 document.getElementById('money').textContent = data.credits;
             }
-        } catch (e) {
-            console.error(e);
-            alert(e.message || 'Impossible de régénérer les crédits');
+        } catch (erreur) {
+            console.error(erreur);
+            alert(erreur.message || 'Impossible de régénérer les crédits');
         } finally {
-            regenBtn.disabled = false;
+            boutonRegen.disabled = false;
         }
     });
 
-    const logoutBtn = document.getElementById('logout');
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', async () => {
+    const boutonLogout = document.getElementById('logout');
+    if (boutonLogout) {
+        boutonLogout.addEventListener('click', async () => {
             await fetch('/logout', { method: 'POST', credentials: 'same-origin' });
             window.location.href = '/login?logout';
         });

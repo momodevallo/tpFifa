@@ -1,53 +1,60 @@
 import pool from '../config/db.js';
 
-export async function getWallet(userId) {
+// Retourne le portefeuille d'un utilisateur.
+export async function recupererPortefeuille(userId) {
     try {
         const [rows] = await pool.query(
             'SELECT credits FROM portefeuilles WHERE utilisateur_id = ?',
             [userId]
         );
         return rows[0] || null;
-    } catch (err) {
-        console.error('Erreur getWallet:', err);
-        throw err;
+    } catch (erreur) {
+        console.error('Erreur recupererPortefeuille:', erreur);
+        throw erreur;
     }
 }
 
-export async function createWallet(userId, initialCredits = 10000) {
+// Crée un portefeuille avec un solde initial.
+export async function creerPortefeuille(userId, creditsInitiaux = 10000) {
     try {
         await pool.query(
             'INSERT INTO portefeuilles (utilisateur_id, credits) VALUES (?, ?)',
-            [userId, initialCredits]
+            [userId, creditsInitiaux]
         );
-        return { credits: initialCredits };
-    } catch (err) {
-        console.error('Erreur createWallet:', err);
-        throw err;
+        return { credits: creditsInitiaux };
+    } catch (erreur) {
+        console.error('Erreur creerPortefeuille:', erreur);
+        throw erreur;
     }
 }
 
-export async function getOrCreateWallet(userId) {
-    let wallet = await getWallet(userId);
-    if (!wallet) {
-        wallet = await createWallet(userId);
+// Retourne le portefeuille s'il existe, sinon le crée.
+export async function recupererOuCreerPortefeuille(userId) {
+    let portefeuille = await recupererPortefeuille(userId);
+
+    if (!portefeuille) {
+        portefeuille = await creerPortefeuille(userId);
     }
-    return wallet;
+
+    return portefeuille;
 }
 
-export async function updateCredits(userId, amount) {
+// Ajoute ou retire des crédits au portefeuille.
+export async function modifierCredits(userId, montant) {
     try {
         const [result] = await pool.query(
             'UPDATE portefeuilles SET credits = credits + ? WHERE utilisateur_id = ?',
-            [amount, userId]
+            [montant, userId]
         );
         return result.affectedRows > 0;
-    } catch (err) {
-        console.error('Erreur updateCredits:', err);
-        throw err;
+    } catch (erreur) {
+        console.error('Erreur modifierCredits:', erreur);
+        throw erreur;
     }
 }
 
-export async function hasEnoughCredits(userId, amount) {
-    const wallet = await getOrCreateWallet(userId);
-    return wallet.credits >= amount;
+// Vérifie que l'utilisateur possède assez de crédits.
+export async function possedeAssezDeCredits(userId, montant) {
+    const portefeuille = await recupererOuCreerPortefeuille(userId);
+    return portefeuille.credits >= montant;
 }

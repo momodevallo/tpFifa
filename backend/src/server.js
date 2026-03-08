@@ -17,14 +17,17 @@ const imageCachePath = path.join(__dirname, '..', 'cache', 'player-images');
 
 const sessions = new Map();
 const packJobs = new Map();
+// TEAM_LIMITS limite le nombre de joueurs par poste dans la composition.
+
 const TEAM_LIMITS = { GB: 1, DEF: 4, MIL: 4, ATT: 2 };
 const INITIAL_CREDITS = 5000;
 const REGEN_CREDITS = 5000;
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+// Middleware maison pour lire la session à partir du cookie sid.
 app.use((req, _res, next) => {
-  req.cookies = parseCookies(req.headers.cookie || '');
+  req.cookies = lireCookies(req.headers.cookie || '');
   const sid = req.cookies.sid;
   req.session = sid && sessions.has(sid) ? sessions.get(sid) : null;
   next();
@@ -48,31 +51,31 @@ app.post('/login', async (req, res) => {
     const mdp = String(req.body.mdp || req.body.password || '');
 
     if (!pseudo || !mdp) {
-      return handleAuthFailure(req, res, 'Pseudo ou mot de passe manquant');
+      return gererEchecAuth(req, res, 'Pseudo ou mot de passe manquant');
     }
 
-    const user = await findUserByPseudo(pseudo);
+    const user = await trouverUtilisateurParPseudo(pseudo);
     if (!user) {
-      return handleAuthFailure(req, res, 'Identifiants invalides');
+      return gererEchecAuth(req, res, 'Identifiants invalides');
     }
 
     const bcrypt = await import('bcrypt');
     const ok = await bcrypt.default.compare(mdp, user.mdp);
     if (!ok) {
-      return handleAuthFailure(req, res, 'Identifiants invalides');
+      return gererEchecAuth(req, res, 'Identifiants invalides');
     }
 
-    const sid = createSession({ id: Number(user.id), pseudo: user.pseudo });
-    setSessionCookie(res, sid);
+    const sid = creerSession({ id: Number(user.id), pseudo: user.pseudo });
+    poserCookieSession(res, sid);
 
-    if (wantsJson(req)) {
+    if (attendJson(req)) {
       return res.json({ message: 'Connexion réussie', userId: Number(user.id), pseudo: user.pseudo });
     }
 
     return res.redirect('/accueil.html');
   } catch (error) {
     console.error('Erreur login:', error);
-    if (wantsJson(req)) {
+    if (attendJson(req)) {
       return res.status(500).json({ message: 'Erreur serveur' });
     }
     return res.redirect('/login?error');
@@ -82,7 +85,7 @@ app.post('/login', async (req, res) => {
 app.post('/logout', (req, res) => {
   const sid = req.cookies.sid;
   if (sid) sessions.delete(sid);
-  clearSessionCookie(res);
+  supprimerCookieSession(res);
   res.json({ message: 'Déconnexion réussie' });
 });
 
@@ -101,7 +104,7 @@ app.post('/api/inscription', async (req, res) => {
   }
 
   try {
-    const existing = await findUserByPseudo(pseudo);
+    const existing = await trouverUtilisateurParPseudo(pseudo);
     if (existing) {
       return res.status(400).json({ message: 'Ce pseudo existe déjà' });
     }
@@ -109,7 +112,7 @@ app.post('/api/inscription', async (req, res) => {
     const bcrypt = await import('bcrypt');
     const hash = await bcrypt.default.hash(mdp, 10);
 
-    const userId = await withTransaction(async (conn) => {
+    const userId = await avecTransaction(async (conn) => {
       const [result] = await conn.query(
         'INSERT INTO utilisateurs (pseudo, mdp) VALUES (?, ?)',
         [pseudo, hash]
@@ -124,7 +127,7 @@ app.post('/api/inscription', async (req, res) => {
         'INSERT INTO equipes (utilisateur_id, formation) VALUES (?, ?)',
         [newUserId, '4-4-2']
       );
-      await createStarterTeam(conn, newUserId);
+      await creerEquipeDepart(conn, newUserId);
       return newUserId;
     });
 
@@ -144,30 +147,31 @@ app.get('/health', async (_req, res) => {
   }
 });
 
+// Sert une image de joueur mise en cache localement si possible.
 app.get('/player-image/:id', async (req, res) => {
   try {
     const playerId = Number(req.params.id);
     if (!playerId) {
-      return sendPlayerPlaceholder(res);
+      return envoyerImageJoueurParDefaut(res);
     }
 
     const [rows] = await pool.query('SELECT image_url FROM joueurs WHERE id = ?', [playerId]);
     const imageUrl = String(rows[0]?.image_url || '').trim();
 
     if (!imageUrl) {
-      return sendPlayerPlaceholder(res);
+      return envoyerImageJoueurParDefaut(res);
     }
 
-    const cache = await getCachedPlayerImage(playerId, imageUrl);
+    const cache = await recupererImageJoueurCachee(playerId, imageUrl);
     if (cache) {
       res.type(cache.contentType);
       return res.send(cache.buffer);
     }
 
-    return sendPlayerPlaceholder(res);
+    return envoyerImageJoueurParDefaut(res);
   } catch (error) {
     console.error('Erreur player-image:', error);
-    return sendPlayerPlaceholder(res);
+    return envoyerImageJoueurParDefaut(res);
   }
 });
 
@@ -181,9 +185,10 @@ app.get('/api/moi', (req, res) => {
   res.json({ id: req.session.id, pseudo: req.session.pseudo });
 });
 
+// Retourne le nombre de crédits du joueur connecté.
 app.get('/api/moi/credits', async (req, res) => {
   try {
-    const wallet = await getOrCreateWallet(req.session.id);
+    const wallet = await recupererOuCreerPortefeuille(req.session.id);
     res.json({ credits: Number(wallet.credits) });
   } catch (error) {
     console.error('Erreur credits:', error);
@@ -191,13 +196,14 @@ app.get('/api/moi/credits', async (req, res) => {
   }
 });
 
+// Ajoute les crédits bonus au portefeuille du joueur.
 app.post('/api/moi/credits/regenerer', async (req, res) => {
   try {
     await pool.query(
       'UPDATE portefeuilles SET credits = credits + ? WHERE utilisateur_id = ?',
       [REGEN_CREDITS, req.session.id]
     );
-    const wallet = await getOrCreateWallet(req.session.id);
+    const wallet = await recupererOuCreerPortefeuille(req.session.id);
     res.json({ credits: Number(wallet.credits) });
   } catch (error) {
     console.error('Erreur regen credits:', error);
@@ -205,9 +211,10 @@ app.post('/api/moi/credits/regenerer', async (req, res) => {
   }
 });
 
+// Retourne les cartes du joueur connecté.
 app.get('/api/moi/cartes', async (req, res) => {
   try {
-    const cards = await getUserCards(req.session.id);
+    const cards = await recupererCartesUtilisateur(req.session.id);
     res.json(cards);
   } catch (error) {
     console.error('Erreur cartes:', error);
@@ -215,9 +222,10 @@ app.get('/api/moi/cartes', async (req, res) => {
   }
 });
 
+// Retourne l'équipe courante du joueur connecté.
 app.get('/api/moi/equipe', async (req, res) => {
   try {
-    const team = await getTeam(req.session.id);
+    const team = await recupererEquipe(req.session.id);
     res.json(team);
   } catch (error) {
     console.error('Erreur équipe:', error);
@@ -270,7 +278,7 @@ app.post('/api/moi/equipe/cartes', async (req, res) => {
       [req.session.id, poste, carteId]
     );
 
-    res.json(await getTeam(req.session.id));
+    res.json(await recupererEquipe(req.session.id));
   } catch (error) {
     console.error('Erreur ajout carte équipe:', error);
     res.status(500).json({ message: 'Erreur serveur' });
@@ -283,13 +291,14 @@ app.delete('/api/moi/equipe/cartes/:carteId', async (req, res) => {
       'DELETE FROM equipes_cartes WHERE utilisateur_id = ? AND carte_id = ?',
       [req.session.id, Number(req.params.carteId)]
     );
-    res.json(await getTeam(req.session.id));
+    res.json(await recupererEquipe(req.session.id));
   } catch (error) {
     console.error('Erreur retrait carte équipe:', error);
     res.status(500).json({ message: 'Erreur serveur' });
   }
 });
 
+// Liste les packs disponibles dans la boutique.
 app.get('/api/packs', async (_req, res) => {
   try {
     const [rows] = await pool.query('SELECT * FROM types_packs ORDER BY prix ASC');
@@ -317,7 +326,7 @@ app.post('/api/packs/:id/ouvrir', async (req, res) => {
 
   setImmediate(async () => {
     try {
-      const cards = await openPack(req.session.id, packId);
+      const cards = await ouvrirPack(req.session.id, packId);
       packJobs.set(uuid, { uuid, statut: 'READY', message: 'Pack prêt', cartes: cards });
     } catch (error) {
       console.error('Erreur ouverture pack:', error);
@@ -339,11 +348,12 @@ app.get('/api/packs/:uuid', (req, res) => {
   res.json(job);
 });
 
+// Retourne les annonces présentes sur le marché.
 app.get('/api/marketplace', async (req, res) => {
   try {
     const [rows] = await pool.query(
       `SELECT am.id AS annonce_id, am.prix, am.vendeur_id, u.pseudo AS vendeur_pseudo,
-              c.id AS carte_id, c.utilisateur_id, c.joueur_id,
+              c.id AS carte_id, c.utilisateur_id, c.joueur_id, c.non_echangeable,
               CASE WHEN ec.carte_id IS NULL THEN 0 ELSE 1 END AS en_equipe,
               j.nom, j.poste, j.qualite, j.note, j.image_url, j.nationalite, j.club
        FROM annonces_marche am
@@ -353,7 +363,7 @@ app.get('/api/marketplace', async (req, res) => {
        LEFT JOIN equipes_cartes ec ON ec.carte_id = c.id AND ec.utilisateur_id = c.utilisateur_id
        ORDER BY am.prix ASC, j.note DESC, j.nom ASC`
     );
-    res.json(rows.map(mapListingRowToView));
+    res.json(rows.map(transformerLigneAnnoncePourVue));
   } catch (error) {
     console.error('Erreur marketplace:', error);
     res.status(500).json({ message: 'Erreur serveur' });
@@ -369,7 +379,8 @@ app.post('/api/marketplace/annonces', async (req, res) => {
     }
 
     const [cards] = await pool.query(
-      `SELECT c.id, c.utilisateur_id, CASE WHEN ec.carte_id IS NULL THEN 0 ELSE 1 END AS en_equipe
+      `SELECT c.id, c.utilisateur_id, c.non_echangeable,
+              CASE WHEN ec.carte_id IS NULL THEN 0 ELSE 1 END AS en_equipe
        FROM cartes c
        LEFT JOIN equipes_cartes ec ON ec.carte_id = c.id AND ec.utilisateur_id = c.utilisateur_id
        WHERE c.id = ?`,
@@ -419,10 +430,11 @@ app.delete('/api/marketplace/annonces/:id', async (req, res) => {
   }
 });
 
+// Permet d'acheter une annonce marché en transaction SQL.
 app.post('/api/marketplace/annonces/:id/acheter', async (req, res) => {
   try {
     const annonceId = Number(req.params.id);
-    await withTransaction(async (conn) => {
+    await avecTransaction(async (conn) => {
       const [rows] = await conn.query(
         `SELECT am.id, am.carte_id, am.vendeur_id, am.prix
          FROM annonces_marche am
@@ -459,7 +471,7 @@ app.post('/api/marketplace/annonces/:id/acheter', async (req, res) => {
       await conn.query('DELETE FROM annonces_marche WHERE id = ?', [annonceId]);
     });
 
-    const wallet = await getOrCreateWallet(req.session.id);
+    const wallet = await recupererOuCreerPortefeuille(req.session.id);
     res.json({ message: 'Achat effectué', credits: Number(wallet.credits) });
   } catch (error) {
     console.error('Erreur achat annonce:', error);
@@ -473,23 +485,25 @@ app.use((req, res) => {
   res.status(404).json({ message: 'Route introuvable' });
 });
 
+// Lance le serveur Express sur le port configuré.
 app.listen(PORT, () => {
   console.log(`Serveur Node lancé sur http://localhost:${PORT}`);
 });
 
 
-async function getCachedPlayerImage(playerId, imageUrl) {
+// Télécharge puis met en cache local l'image d'un joueur.
+async function recupererImageJoueurCachee(playerId, imageUrl) {
   try {
     await fs.mkdir(imageCachePath, { recursive: true });
 
-    const extension = getImageExtensionFromUrl(imageUrl);
+    const extension = trouverExtensionImage(imageUrl);
     const cacheFilePath = path.join(imageCachePath, `${playerId}.${extension}`);
 
     try {
       const buffer = await fs.readFile(cacheFilePath);
       return {
         buffer,
-        contentType: getContentTypeFromExtension(extension)
+        contentType: trouverContentTypeDepuisExtension(extension)
       };
     } catch (_error) {}
 
@@ -507,7 +521,7 @@ async function getCachedPlayerImage(playerId, imageUrl) {
 
     const arrayBuffer = await remoteRes.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
-    const contentType = remoteRes.headers.get('content-type') || getContentTypeFromExtension(extension);
+    const contentType = remoteRes.headers.get('content-type') || trouverContentTypeDepuisExtension(extension);
 
     await fs.writeFile(cacheFilePath, buffer);
 
@@ -521,7 +535,8 @@ async function getCachedPlayerImage(playerId, imageUrl) {
   }
 }
 
-function getImageExtensionFromUrl(imageUrl) {
+// Déduit l'extension probable d'une image à partir de son URL.
+function trouverExtensionImage(imageUrl) {
   const cleanUrl = String(imageUrl || '').split('?')[0].toLowerCase();
   if (cleanUrl.endsWith('.jpg') || cleanUrl.endsWith('.jpeg')) return 'jpg';
   if (cleanUrl.endsWith('.webp')) return 'webp';
@@ -530,7 +545,8 @@ function getImageExtensionFromUrl(imageUrl) {
   return 'png';
 }
 
-function getContentTypeFromExtension(extension) {
+// Retourne le content-type adapté à une extension d'image.
+function trouverContentTypeDepuisExtension(extension) {
   switch (extension) {
     case 'jpg':
     case 'jpeg':
@@ -546,7 +562,8 @@ function getContentTypeFromExtension(extension) {
   }
 }
 
-function sendPlayerPlaceholder(res) {
+// Envoie un avatar SVG par défaut quand aucune image n'est dispo.
+function envoyerImageJoueurParDefaut(res) {
   const svg = `
     <svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240">
       <defs>
@@ -564,7 +581,8 @@ function sendPlayerPlaceholder(res) {
   res.status(200).type('image/svg+xml').send(svg);
 }
 
-function parseCookies(cookieHeader) {
+// Transforme l'en-tête Cookie en objet JavaScript simple.
+function lireCookies(cookieHeader) {
   return cookieHeader.split(';').reduce((acc, part) => {
     const [rawKey, ...rest] = part.trim().split('=');
     if (!rawKey) return acc;
@@ -573,34 +591,40 @@ function parseCookies(cookieHeader) {
   }, {});
 }
 
-function wantsJson(req) {
+// Détermine si le client attend une réponse JSON.
+function attendJson(req) {
   const accept = String(req.headers.accept || '').toLowerCase();
   const contentType = String(req.headers['content-type'] || '').toLowerCase();
   return accept.includes('application/json') || contentType.includes('application/json');
 }
 
-function createSession(user) {
+// Crée une session en mémoire pour l'utilisateur connecté.
+function creerSession(user) {
   const sid = crypto.randomUUID();
   sessions.set(sid, { ...user, createdAt: Date.now() });
   return sid;
 }
 
-function setSessionCookie(res, sid) {
+// Pose le cookie HTTP qui identifie la session.
+function poserCookieSession(res, sid) {
   res.setHeader('Set-Cookie', `sid=${encodeURIComponent(sid)}; HttpOnly; Path=/; SameSite=Lax; Max-Age=${7 * 24 * 60 * 60}`);
 }
 
-function clearSessionCookie(res) {
+// Supprime le cookie de session côté navigateur.
+function supprimerCookieSession(res) {
   res.setHeader('Set-Cookie', 'sid=; HttpOnly; Path=/; SameSite=Lax; Max-Age=0');
 }
 
-function handleAuthFailure(req, res, message) {
-  if (wantsJson(req)) {
+// Centralise la réponse envoyée lors d'un échec d'authentification.
+function gererEchecAuth(req, res, message) {
+  if (attendJson(req)) {
     return res.status(400).json({ message });
   }
   return res.redirect('/login?error');
 }
 
-async function withTransaction(work) {
+// Exécute un bloc SQL dans une transaction atomique.
+async function avecTransaction(work) {
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
@@ -615,19 +639,22 @@ async function withTransaction(work) {
   }
 }
 
-async function findUserByPseudo(pseudo) {
+// Cherche un utilisateur à partir de son pseudo.
+async function trouverUtilisateurParPseudo(pseudo) {
   const [rows] = await pool.query('SELECT id, pseudo, mdp FROM utilisateurs WHERE pseudo = ?', [pseudo]);
   return rows[0] || null;
 }
 
-async function getOrCreateWallet(userId) {
+// Retourne le portefeuille d'un joueur, ou le crée si besoin.
+async function recupererOuCreerPortefeuille(userId) {
   const [rows] = await pool.query('SELECT utilisateur_id, credits FROM portefeuilles WHERE utilisateur_id = ?', [userId]);
   if (rows[0]) return rows[0];
   await pool.query('INSERT INTO portefeuilles (utilisateur_id, credits) VALUES (?, ?)', [userId, INITIAL_CREDITS]);
   return { utilisateur_id: userId, credits: INITIAL_CREDITS };
 }
 
-async function createStarterTeam(conn, userId) {
+// Crée automatiquement l'équipe de départ d'un nouveau compte.
+async function creerEquipeDepart(conn, userId) {
   const starterPlan = [
     ['GB', 1],
     ['DEF', 4],
@@ -661,7 +688,8 @@ async function createStarterTeam(conn, userId) {
   }
 }
 
-function mapCardRowToView(row) {
+// Convertit une ligne SQL carte en objet pratique pour le front.
+function transformerLigneCartePourVue(row) {
   return {
     id: Number(row.carte_id),
     nonEchangeable: Number(row.non_echangeable || 0) === 1,
@@ -679,19 +707,21 @@ function mapCardRowToView(row) {
   };
 }
 
-function mapListingRowToView(row) {
+// Convertit une ligne SQL annonce en objet lisible côté front.
+function transformerLigneAnnoncePourVue(row) {
   return {
     id: Number(row.annonce_id),
     prix: Number(row.prix),
     vendeurId: Number(row.vendeur_id),
     vendeurPseudo: row.vendeur_pseudo,
-    carte: mapCardRowToView(row)
+    carte: transformerLigneCartePourVue(row)
   };
 }
 
-async function getUserCards(userId) {
+// Récupère toutes les cartes possédées par un joueur.
+async function recupererCartesUtilisateur(userId) {
   const [rows] = await pool.query(
-    `SELECT c.id AS carte_id, c.utilisateur_id, c.joueur_id,
+    `SELECT c.id AS carte_id, c.utilisateur_id, c.joueur_id, c.non_echangeable,
             CASE WHEN ec.carte_id IS NULL THEN 0 ELSE 1 END AS en_equipe,
             j.nom, j.poste, j.qualite, j.note, j.image_url, j.nationalite, j.club
      FROM cartes c
@@ -701,10 +731,11 @@ async function getUserCards(userId) {
      ORDER BY j.note DESC, j.nom ASC`,
     [userId]
   );
-  return rows.map(mapCardRowToView);
+  return rows.map(transformerLigneCartePourVue);
 }
 
-async function getTeam(userId) {
+// Récupère l'équipe complète structurée par lignes.
+async function recupererEquipe(userId) {
   const [teamRows] = await pool.query('SELECT formation FROM equipes WHERE utilisateur_id = ?', [userId]);
   const formation = teamRows[0]?.formation || '4-4-2';
   const [rows] = await pool.query(
@@ -717,7 +748,7 @@ async function getTeam(userId) {
      ORDER BY FIELD(ec.poste, 'GB', 'DEF', 'MIL', 'ATT'), j.note DESC, c.id ASC`,
     [userId]
   );
-  const cards = rows.map(mapCardRowToView);
+  const cards = rows.map(transformerLigneCartePourVue);
   return {
     formation,
     gardiens: cards.filter(card => card.joueur.poste === 'GB'),
@@ -727,15 +758,17 @@ async function getTeam(userId) {
   };
 }
 
-function drawQuality(pack) {
+// Tire la qualité d'une carte selon les pourcentages du pack.
+function tirerQualite(pack) {
   const roll = Math.floor(Math.random() * 100);
   if (roll < Number(pack.pct_bronze)) return 'bronze';
   if (roll < Number(pack.pct_bronze) + Number(pack.pct_argent)) return 'argent';
   return 'or';
 }
 
-async function openPack(userId, packId) {
-  return withTransaction(async (conn) => {
+// Ouvre un pack, retire les crédits puis crée les cartes gagnées.
+async function ouvrirPack(userId, packId) {
+  return avecTransaction(async (conn) => {
     const [packRows] = await conn.query('SELECT * FROM types_packs WHERE id = ?', [packId]);
     const pack = packRows[0];
     if (!pack) throw new Error('Pack inconnu');
@@ -756,7 +789,7 @@ async function openPack(userId, packId) {
     const packPlayerIds = new Set();
 
     for (let i = 0; i < Number(pack.nb_cartes); i++) {
-      const quality = drawQuality(pack);
+      const quality = tirerQualite(pack);
       let created = null;
 
       for (let attempt = 0; attempt < 25 && !created; attempt++) {
@@ -780,7 +813,7 @@ async function openPack(userId, packId) {
           [userId, player.id]
         );
         packPlayerIds.add(Number(player.id));
-        created = mapCardRowToView({
+        created = transformerLigneCartePourVue({
           carte_id: Number(result.insertId),
           joueur_id: Number(player.id),
           en_equipe: 0,

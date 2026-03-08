@@ -1,19 +1,21 @@
 import pool from '../config/db.js';
-import { getAllMarketListings, createMarketListing, getMarketListingById, removeMarketListing } from '../models/marcheModel.js';
-import { getCardById, userOwnsCard, removeCardFromUser, addCardToUser } from '../models/carteModel.js';
-import { getOrCreateWallet, updateCredits, hasEnoughCredits } from '../models/walletModel.js';
+import { recupererToutesLesAnnonces, creerAnnonceMarche, recupererAnnonceParId, supprimerAnnonceMarche } from '../models/marcheModel.js';
+import { carteAppartientUtilisateur } from '../models/carteModel.js';
+import { recupererOuCreerPortefeuille, modifierCredits, possedeAssezDeCredits } from '../models/walletModel.js';
 
-export async function getMarketListings(req, res) {
+// Retourne toutes les annonces du marché.
+export async function recupererAnnoncesMarche(req, res) {
     try {
-        const listings = await getAllMarketListings();
-        return res.status(200).json({ listings });
-    } catch (err) {
-        console.error('Erreur getMarketListings:', err);
+        const annonces = await recupererToutesLesAnnonces();
+        return res.status(200).json({ listings: annonces });
+    } catch (erreur) {
+        console.error('Erreur recupererAnnoncesMarche:', erreur);
         return res.status(500).json({ message: 'Erreur serveur' });
     }
 }
 
-export async function sellCard(req, res) {
+// Met une carte en vente sur le marché.
+export async function vendreCarte(req, res) {
     try {
         const { userId, carteId, prix } = req.body;
 
@@ -25,29 +27,30 @@ export async function sellCard(req, res) {
             return res.status(400).json({ message: 'Le prix doit être positif' });
         }
 
-        const owns = await userOwnsCard(userId, carteId);
-        if (!owns) {
+        const possedeCarte = await carteAppartientUtilisateur(userId, carteId);
+        if (!possedeCarte) {
             return res.status(403).json({ message: 'Vous ne possédez pas cette carte' });
         }
 
-        const annonceId = await createMarketListing(carteId, userId, prix);
+        const idAnnonce = await creerAnnonceMarche(carteId, userId, prix);
 
         return res.status(201).json({
             message: 'Carte mise en vente',
-            annonceId
+            annonceId: idAnnonce
         });
-    } catch (err) {
-        if (err.message.includes('déjà en vente')) {
-            return res.status(400).json({ message: err.message });
+    } catch (erreur) {
+        if (erreur.message.includes('déjà en vente')) {
+            return res.status(400).json({ message: erreur.message });
         }
-        console.error('Erreur sellCard:', err);
+        console.error('Erreur vendreCarte:', erreur);
         return res.status(500).json({ message: 'Erreur serveur' });
     }
 }
 
-export async function buyCard(req, res) {
-    const connection = await pool.getConnection();
-    
+// Achète une carte du marché avec transaction SQL.
+export async function acheterCarte(req, res) {
+    const connexion = await pool.getConnection();
+
     try {
         const { userId, annonceId } = req.body;
 
@@ -55,48 +58,47 @@ export async function buyCard(req, res) {
             return res.status(400).json({ message: 'userId et annonceId requis' });
         }
 
-        await connection.beginTransaction();
+        await connexion.beginTransaction();
 
-        const listing = await getMarketListingById(annonceId);
-        if (!listing) {
-            await connection.rollback();
+        const annonce = await recupererAnnonceParId(annonceId);
+        if (!annonce) {
+            await connexion.rollback();
             return res.status(404).json({ message: 'Annonce non trouvée' });
         }
 
-        if (listing.vendeur_id === parseInt(userId)) {
-            await connection.rollback();
+        if (annonce.vendeur_id === parseInt(userId, 10)) {
+            await connexion.rollback();
             return res.status(400).json({ message: 'Vous ne pouvez pas acheter votre propre carte' });
         }
 
-        const hasCredits = await hasEnoughCredits(userId, listing.prix);
-        if (!hasCredits) {
-            await connection.rollback();
+        const assezDeCredits = await possedeAssezDeCredits(userId, annonce.prix);
+        if (!assezDeCredits) {
+            await connexion.rollback();
             return res.status(400).json({ message: 'Crédits insuffisants' });
         }
 
-        await updateCredits(userId, -listing.prix);
-        await updateCredits(listing.vendeur_id, listing.prix);
+        await modifierCredits(userId, -annonce.prix);
+        await modifierCredits(annonce.vendeur_id, annonce.prix);
 
-        await connection.query(
+        await connexion.query(
             'UPDATE cartes SET utilisateur_id = ? WHERE id = ?',
-            [userId, listing.carte_id]
+            [userId, annonce.carte_id]
         );
 
-        await removeMarketListing(annonceId);
+        await supprimerAnnonceMarche(annonceId);
+        await connexion.commit();
 
-        await connection.commit();
-
-        const wallet = await getOrCreateWallet(userId);
+        const portefeuille = await recupererOuCreerPortefeuille(userId);
 
         return res.status(200).json({
             message: 'Carte achetée avec succès',
-            credits: wallet.credits
+            credits: portefeuille.credits
         });
-    } catch (err) {
-        await connection.rollback();
-        console.error('Erreur buyCard:', err);
+    } catch (erreur) {
+        await connexion.rollback();
+        console.error('Erreur acheterCarte:', erreur);
         return res.status(500).json({ message: 'Erreur serveur' });
     } finally {
-        connection.release();
+        connexion.release();
     }
 }
