@@ -12,7 +12,7 @@
 <main>
     <section class="club">
         <div class="club-header">
-            <h2 class="club-title">Mes Joueurs (test)</h2>
+            <h2 class="club-title">Mes Joueurs</h2>
             <div class="stats">
                 <span id="totalPlayers">0</span> joueurs dans ton club
             </div>
@@ -32,35 +32,6 @@
         <div class="players-grid"></div>
     </section>
 </main>
-<div id="sellModal" class="sell-modal hidden">
-    <div class="sell-modal__backdrop" data-close-sell-modal></div>
-
-    <div class="sell-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="sellModalTitle">
-        <div class="sell-modal__header">
-            <h3 id="sellModalTitle">Mettre en vente</h3>
-            <button type="button" class="sell-modal__close" data-close-sell-modal>&times;</button>
-        </div>
-
-        <div id="sellModalPlayer" class="sell-modal__player"></div>
-
-        <label for="sellPriceInput" class="sell-modal__label">Prix de vente</label>
-        <input
-                type="number"
-                id="sellPriceInput"
-                class="sell-modal__input"
-                min="1"
-                step="1"
-                placeholder="Ex : 500"
-        >
-
-        <p id="sellModalError" class="sell-modal__error"></p>
-
-        <div class="sell-modal__actions">
-            <button type="button" id="sellModalCancel" class="sell-modal__btn sell-modal__btn--ghost">Annuler</button>
-            <button type="button" id="sellModalConfirm" class="sell-modal__btn sell-modal__btn--primary">Mettre en vente</button>
-        </div>
-    </div>
-</div>
 <script src="/js/mes-joueurs.js"></script>
 
 </body>
