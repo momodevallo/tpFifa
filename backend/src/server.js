@@ -1,10 +1,13 @@
 import express from 'express';
 import dotenv from 'dotenv';
+import pool from './config/db.js';
+
+
+
 import path from 'path';
 import crypto from 'crypto';
 import fs from 'fs/promises';
 import { fileURLToPath } from 'url';
-import pool from './config/db.js';
 
 dotenv.config();
 
@@ -211,18 +214,17 @@ app.post('/api/moi/credits/regenerer', async (req, res) => {
   }
 });
 
-// Retourne les cartes du joueur connecté.
+// ca va retourner les cartes du joueurs
 app.get('/api/moi/cartes', async (req, res) => {
   try {
     const cards = await recupererCartesUtilisateur(req.session.id);
     res.json(cards);
   } catch (error) {
-    console.error('Erreur cartes:', error);
-    res.status(500).json({ message: 'Erreur serveur' });
+    res.status(500).json({ message: 'erreur de serveur' });
   }
 });
 
-// Retourne l'équipe courante du joueur connecté.
+// Retourne l'équipe courante du joueur connecté
 app.get('/api/moi/equipe', async (req, res) => {
   try {
     const team = await recupererEquipe(req.session.id);
@@ -758,11 +760,11 @@ async function recupererEquipe(userId) {
   };
 }
 
-// Tire la qualité d'une carte selon les pourcentages du pack.
+
 async function tirerQualite(pack) {
-  const roll = Math.floor(Math.random() * 100);
-  if (roll < Number(pack.pct_bronze)) return 'bronze';
-  if (roll < Number(pack.pct_bronze) + Number(pack.pct_argent)) return 'argent';
+  const chance = Math.floor(Math.random() * 100);
+  if (chance < Number(pack.pct_bronze)) return 'bronze';
+  if (chance < Number(pack.pct_bronze) + Number(pack.pct_argent)) return 'argent';
   return 'or';
 }
 
