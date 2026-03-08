@@ -26,22 +26,22 @@ const REGEN_CREDITS = 5000;
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 // Middleware maison pour lire la session à partir du cookie sid.
-app.use(async (req, _res, next) => {
-  req.cookies = await lireCookies(req.headers.cookie || '');
+app.use((req, _res, next) => {
+  req.cookies = lireCookies(req.headers.cookie || '');
   const sid = req.cookies.sid;
   req.session = sid && sessions.has(sid) ? sessions.get(sid) : null;
   next();
 });
 
-app.get('/', async (req, res) => {
+app.get('/', (req, res) => {
   res.redirect(req.session ? '/accueil.html' : '/login');
 });
 
-app.get('/login', async (_req, res) => {
+app.get('/login', (_req, res) => {
   res.sendFile(path.join(publicPath, 'auth', 'login.html'));
 });
 
-app.get('/register', async (_req, res) => {
+app.get('/register', (_req, res) => {
   res.sendFile(path.join(publicPath, 'auth', 'register.html'));
 });
 
@@ -51,41 +51,41 @@ app.post('/login', async (req, res) => {
     const mdp = String(req.body.mdp || req.body.password || '');
 
     if (!pseudo || !mdp) {
-      return await gererEchecAuth(req, res, 'Pseudo ou mot de passe manquant');
+      return gererEchecAuth(req, res, 'Pseudo ou mot de passe manquant');
     }
 
     const user = await trouverUtilisateurParPseudo(pseudo);
     if (!user) {
-      return await gererEchecAuth(req, res, 'Identifiants invalides');
+      return gererEchecAuth(req, res, 'Identifiants invalides');
     }
 
     const bcrypt = await import('bcrypt');
     const ok = await bcrypt.default.compare(mdp, user.mdp);
     if (!ok) {
-      return await gererEchecAuth(req, res, 'Identifiants invalides');
+      return gererEchecAuth(req, res, 'Identifiants invalides');
     }
 
-    const sid = await creerSession({ id: Number(user.id), pseudo: user.pseudo });
-    await poserCookieSession(res, sid);
+    const sid = creerSession({ id: Number(user.id), pseudo: user.pseudo });
+    poserCookieSession(res, sid);
 
-    if (await attendJson(req)) {
+    if (attendJson(req)) {
       return res.json({ message: 'Connexion réussie', userId: Number(user.id), pseudo: user.pseudo });
     }
 
     return res.redirect('/accueil.html');
   } catch (error) {
     console.error('Erreur login:', error);
-    if (await attendJson(req)) {
+    if (attendJson(req)) {
       return res.status(500).json({ message: 'Erreur serveur' });
     }
     return res.redirect('/login?error');
   }
 });
 
-app.post('/logout', async (req, res) => {
+app.post('/logout', (req, res) => {
   const sid = req.cookies.sid;
   if (sid) sessions.delete(sid);
-  await supprimerCookieSession(res);
+  supprimerCookieSession(res);
   res.json({ message: 'Déconnexion réussie' });
 });
 
@@ -152,14 +152,14 @@ app.get('/player-image/:id', async (req, res) => {
   try {
     const playerId = Number(req.params.id);
     if (!playerId) {
-      return await envoyerImageJoueurParDefaut(res);
+      return envoyerImageJoueurParDefaut(res);
     }
 
     const [rows] = await pool.query('SELECT image_url FROM joueurs WHERE id = ?', [playerId]);
     const imageUrl = String(rows[0]?.image_url || '').trim();
 
     if (!imageUrl) {
-      return await envoyerImageJoueurParDefaut(res);
+      return envoyerImageJoueurParDefaut(res);
     }
 
     const cache = await recupererImageJoueurCachee(playerId, imageUrl);
@@ -168,20 +168,20 @@ app.get('/player-image/:id', async (req, res) => {
       return res.send(cache.buffer);
     }
 
-    return await envoyerImageJoueurParDefaut(res);
+    return envoyerImageJoueurParDefaut(res);
   } catch (error) {
     console.error('Erreur player-image:', error);
-    return await envoyerImageJoueurParDefaut(res);
+    return envoyerImageJoueurParDefaut(res);
   }
 });
 
-app.use('/api', async (req, res, next) => {
+app.use('/api', (req, res, next) => {
   if (req.path === '/inscription') return next();
   if (!req.session) return res.status(401).json({ message: 'Non authentifié' });
   next();
 });
 
-app.get('/api/moi', async (req, res) => {
+app.get('/api/moi', (req, res) => {
   res.json({ id: req.session.id, pseudo: req.session.pseudo });
 });
 
@@ -337,7 +337,7 @@ app.post('/api/packs/:id/ouvrir', async (req, res) => {
   res.json({ uuid });
 });
 
-app.get('/api/packs/:uuid', async (req, res) => {
+app.get('/api/packs/:uuid', (req, res) => {
   const job = packJobs.get(req.params.uuid);
   if (!job) {
     return res.status(404).json({ message: 'UUID inconnu' });
@@ -363,7 +363,7 @@ app.get('/api/marketplace', async (req, res) => {
        LEFT JOIN equipes_cartes ec ON ec.carte_id = c.id AND ec.utilisateur_id = c.utilisateur_id
        ORDER BY am.prix ASC, j.note DESC, j.nom ASC`
     );
-    res.json(await Promise.all(rows.map((row) => transformerLigneAnnoncePourVue(row))));
+    res.json(rows.map(transformerLigneAnnoncePourVue));
   } catch (error) {
     console.error('Erreur marketplace:', error);
     res.status(500).json({ message: 'Erreur serveur' });
@@ -496,14 +496,14 @@ async function recupererImageJoueurCachee(playerId, imageUrl) {
   try {
     await fs.mkdir(imageCachePath, { recursive: true });
 
-    const extension = await trouverExtensionImage(imageUrl);
+    const extension = trouverExtensionImage(imageUrl);
     const cacheFilePath = path.join(imageCachePath, `${playerId}.${extension}`);
 
     try {
       const buffer = await fs.readFile(cacheFilePath);
       return {
         buffer,
-        contentType: await trouverContentTypeDepuisExtension(extension)
+        contentType: trouverContentTypeDepuisExtension(extension)
       };
     } catch (_error) {}
 
@@ -521,7 +521,7 @@ async function recupererImageJoueurCachee(playerId, imageUrl) {
 
     const arrayBuffer = await remoteRes.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
-    const contentType = remoteRes.headers.get('content-type') || await trouverContentTypeDepuisExtension(extension);
+    const contentType = remoteRes.headers.get('content-type') || trouverContentTypeDepuisExtension(extension);
 
     await fs.writeFile(cacheFilePath, buffer);
 
@@ -536,7 +536,7 @@ async function recupererImageJoueurCachee(playerId, imageUrl) {
 }
 
 // Déduit l'extension probable d'une image à partir de son URL.
-async function trouverExtensionImage(imageUrl) {
+function trouverExtensionImage(imageUrl) {
   const cleanUrl = String(imageUrl || '').split('?')[0].toLowerCase();
   if (cleanUrl.endsWith('.jpg') || cleanUrl.endsWith('.jpeg')) return 'jpg';
   if (cleanUrl.endsWith('.webp')) return 'webp';
@@ -546,7 +546,7 @@ async function trouverExtensionImage(imageUrl) {
 }
 
 // Retourne le content-type adapté à une extension d'image.
-async function trouverContentTypeDepuisExtension(extension) {
+function trouverContentTypeDepuisExtension(extension) {
   switch (extension) {
     case 'jpg':
     case 'jpeg':
@@ -563,7 +563,7 @@ async function trouverContentTypeDepuisExtension(extension) {
 }
 
 // Envoie un avatar SVG par défaut quand aucune image n'est dispo.
-async function envoyerImageJoueurParDefaut(res) {
+function envoyerImageJoueurParDefaut(res) {
   const svg = `
     <svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240">
       <defs>
@@ -582,7 +582,7 @@ async function envoyerImageJoueurParDefaut(res) {
 }
 
 // Transforme l'en-tête Cookie en objet JavaScript simple.
-async function lireCookies(cookieHeader) {
+function lireCookies(cookieHeader) {
   return cookieHeader.split(';').reduce((acc, part) => {
     const [rawKey, ...rest] = part.trim().split('=');
     if (!rawKey) return acc;
@@ -592,32 +592,32 @@ async function lireCookies(cookieHeader) {
 }
 
 // Détermine si le client attend une réponse JSON.
-async function attendJson(req) {
+function attendJson(req) {
   const accept = String(req.headers.accept || '').toLowerCase();
   const contentType = String(req.headers['content-type'] || '').toLowerCase();
   return accept.includes('application/json') || contentType.includes('application/json');
 }
 
 // Crée une session en mémoire pour l'utilisateur connecté.
-async function creerSession(user) {
+function creerSession(user) {
   const sid = crypto.randomUUID();
   sessions.set(sid, { ...user, createdAt: Date.now() });
   return sid;
 }
 
 // Pose le cookie HTTP qui identifie la session.
-async function poserCookieSession(res, sid) {
+function poserCookieSession(res, sid) {
   res.setHeader('Set-Cookie', `sid=${encodeURIComponent(sid)}; HttpOnly; Path=/; SameSite=Lax; Max-Age=${7 * 24 * 60 * 60}`);
 }
 
 // Supprime le cookie de session côté navigateur.
-async function supprimerCookieSession(res) {
+function supprimerCookieSession(res) {
   res.setHeader('Set-Cookie', 'sid=; HttpOnly; Path=/; SameSite=Lax; Max-Age=0');
 }
 
 // Centralise la réponse envoyée lors d'un échec d'authentification.
-async function gererEchecAuth(req, res, message) {
-  if (await attendJson(req)) {
+function gererEchecAuth(req, res, message) {
+  if (attendJson(req)) {
     return res.status(400).json({ message });
   }
   return res.redirect('/login?error');
@@ -689,7 +689,7 @@ async function creerEquipeDepart(conn, userId) {
 }
 
 // Convertit une ligne SQL carte en objet pratique pour le front.
-async function transformerLigneCartePourVue(row) {
+function transformerLigneCartePourVue(row) {
   return {
     id: Number(row.carte_id),
     nonEchangeable: Number(row.non_echangeable || 0) === 1,
@@ -708,13 +708,13 @@ async function transformerLigneCartePourVue(row) {
 }
 
 // Convertit une ligne SQL annonce en objet lisible côté front.
-async function transformerLigneAnnoncePourVue(row) {
+function transformerLigneAnnoncePourVue(row) {
   return {
     id: Number(row.annonce_id),
     prix: Number(row.prix),
     vendeurId: Number(row.vendeur_id),
     vendeurPseudo: row.vendeur_pseudo,
-    carte: await transformerLigneCartePourVue(row)
+    carte: transformerLigneCartePourVue(row)
   };
 }
 
@@ -731,7 +731,7 @@ async function recupererCartesUtilisateur(userId) {
      ORDER BY j.note DESC, j.nom ASC`,
     [userId]
   );
-  return Promise.all(rows.map((row) => transformerLigneCartePourVue(row)));
+  return rows.map(transformerLigneCartePourVue);
 }
 
 // Récupère l'équipe complète structurée par lignes.
@@ -748,7 +748,7 @@ async function recupererEquipe(userId) {
      ORDER BY FIELD(ec.poste, 'GB', 'DEF', 'MIL', 'ATT'), j.note DESC, c.id ASC`,
     [userId]
   );
-  const cards = await Promise.all(rows.map((row) => transformerLigneCartePourVue(row)));
+  const cards = rows.map(transformerLigneCartePourVue);
   return {
     formation,
     gardiens: cards.filter(card => card.joueur.poste === 'GB'),
@@ -759,7 +759,7 @@ async function recupererEquipe(userId) {
 }
 
 // Tire la qualité d'une carte selon les pourcentages du pack.
-async function tirerQualite(pack) {
+function tirerQualite(pack) {
   const roll = Math.floor(Math.random() * 100);
   if (roll < Number(pack.pct_bronze)) return 'bronze';
   if (roll < Number(pack.pct_bronze) + Number(pack.pct_argent)) return 'argent';
@@ -789,7 +789,7 @@ async function ouvrirPack(userId, packId) {
     const packPlayerIds = new Set();
 
     for (let i = 0; i < Number(pack.nb_cartes); i++) {
-      const quality = await tirerQualite(pack);
+      const quality = tirerQualite(pack);
       let created = null;
 
       for (let attempt = 0; attempt < 25 && !created; attempt++) {
@@ -813,7 +813,7 @@ async function ouvrirPack(userId, packId) {
           [userId, player.id]
         );
         packPlayerIds.add(Number(player.id));
-        created = await transformerLigneCartePourVue({
+        created = transformerLigneCartePourVue({
           carte_id: Number(result.insertId),
           joueur_id: Number(player.id),
           en_equipe: 0,
