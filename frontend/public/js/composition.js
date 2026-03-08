@@ -9,7 +9,6 @@ let timerComposition = null;
 let requeteCompositionEnCours = false;
 const DELAI_RAFRAICHISSEMENT_COMPOSITION = 4000;
 
-// Échappe les caractères HTML pour éviter d'injecter du texte brut dans la page.
 function echapperHtml(valeur) {
     return String(valeur || '')
         .replaceAll('&', '&amp;')
@@ -19,7 +18,6 @@ function echapperHtml(valeur) {
         .replaceAll("'", '&#39;');
 }
 
-// Crée une image locale si une vraie image joueur n'est pas disponible.
 function creerImageJoueurParDefaut() {
     return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
         <svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240">
@@ -37,14 +35,12 @@ function creerImageJoueurParDefaut() {
     `)}`;
 }
 
-// Retourne la bonne image à afficher pour le joueur.
 function donnerImageJoueur(joueur) {
     if (!joueur) return '';
     if (joueur.id) return `/player-image/${joueur.id}`;
     return joueur.imageUrl || '';
 }
 
-// Génère la carte d'un joueur dans la zone banc.
 function genererCarteBanc(carte) {
     const classeSelection = idCarteBancSelectionnee === carte.id ? ' selected' : '';
 
@@ -64,7 +60,6 @@ function genererCarteBanc(carte) {
     `;
 }
 
-// Génère le contenu d'une case du terrain.
 function genererCaseTerrain(carte, poste) {
     if (!carte) {
         return `<div class="slot-placeholder">${echapperHtml(poste)}</div>`;
@@ -84,12 +79,10 @@ function genererCaseTerrain(carte, poste) {
     `;
 }
 
-// Extrait le poste attendu à partir du dataset de la case.
 function extrairePosteDepuisCase(caseTerrain) {
     return String(caseTerrain.dataset.position || '').replace(/[0-9]/g, '');
 }
 
-// Remplit une série de cases avec les cartes passées en paramètre.
 function remplirCases(cartes, selecteur) {
     const cases = document.querySelectorAll(selecteur);
 
@@ -102,7 +95,6 @@ function remplirCases(cartes, selecteur) {
     });
 }
 
-// Regroupe toutes les cartes actuellement présentes dans l'équipe.
 function recupererCartesEquipe() {
     return [
         ...(equipeCachee?.attaquants || []),
@@ -112,20 +104,17 @@ function recupererCartesEquipe() {
     ];
 }
 
-// Cherche une carte par son identifiant dans le banc puis dans l'équipe.
 function trouverCarteParId(idCarte) {
     return cartesCachees.find(carte => Number(carte.id) === Number(idCarte))
         || recupererCartesEquipe().find(carte => Number(carte.id) === Number(idCarte))
         || null;
 }
 
-// Retourne uniquement les cartes qui ne sont pas encore sur le terrain.
 function recupererCartesBanc() {
     const idsEquipe = new Set(recupererCartesEquipe().map(carte => carte.id));
     return cartesCachees.filter(carte => !idsEquipe.has(carte.id));
 }
 
-// Applique la recherche et le filtre de poste sur le banc.
 function recupererCartesBancFiltrees() {
     return recupererCartesBanc().filter((carte) => {
         const okRecherche = !rechercheBanc || carte.joueur.nom.toLowerCase().includes(rechercheBanc);
@@ -134,7 +123,6 @@ function recupererCartesBancFiltrees() {
     });
 }
 
-// Réaffiche complètement la zone du banc.
 function rafraichirBanc() {
     const banc = recupererCartesBancFiltrees();
     const zoneBanc = document.querySelector('.bench-players');
@@ -147,7 +135,6 @@ function rafraichirBanc() {
     zoneBanc.innerHTML = banc.map(genererCarteBanc).join('');
 }
 
-// Nettoie l'état visuel et logique du drag & drop.
 function reinitialiserDrag() {
     idCarteGlissee = null;
     glisseDepuisEquipe = false;
@@ -157,19 +144,16 @@ function reinitialiserDrag() {
     });
 }
 
-// Colore une case selon que le dépôt soit valide ou non.
 function marquerEtatCase(caseTerrain, estValide) {
     caseTerrain.classList.remove('drag-over', 'drag-invalid');
     caseTerrain.classList.add(estValide ? 'drag-over' : 'drag-invalid');
 }
 
-// Vérifie si la carte peut être posée sur cette case.
 function depotValideSurCase(caseTerrain, carte) {
     if (!caseTerrain || !carte) return false;
     return carte.joueur.poste === extrairePosteDepuisCase(caseTerrain);
 }
 
-// Ajoute une carte dans l'équipe via l'API.
 async function ajouterCarteEquipe(idCarte, poste) {
     const reponse = await fetch('/api/moi/equipe/cartes', {
         method: 'POST',
@@ -186,7 +170,6 @@ async function ajouterCarteEquipe(idCarte, poste) {
     return data;
 }
 
-// Retire une carte de l'équipe via l'API.
 async function retirerCarteEquipe(idCarte) {
     const reponse = await fetch(`/api/moi/equipe/cartes/${idCarte}`, {
         method: 'DELETE',
@@ -201,7 +184,6 @@ async function retirerCarteEquipe(idCarte) {
     return data;
 }
 
-// Place une carte dans une case, avec échange si une autre carte occupe déjà la place.
 async function placerCarteDansCase(idCarte, caseTerrain) {
     const poste = extrairePosteDepuisCase(caseTerrain);
     const carteChoisie = trouverCarteParId(idCarte);
@@ -250,7 +232,6 @@ async function placerCarteDansCase(idCarte, caseTerrain) {
     }
 }
 
-// Gère les clics sur le document pour le banc et les boutons retirer.
 function gererClicDocument(event) {
     const boutonRetrait = event.target.closest('.slot-remove');
     if (boutonRetrait) {
@@ -276,7 +257,6 @@ function gererClicDocument(event) {
     }
 }
 
-// Démarre le glisser-déposer en mémorisant la carte concernée.
 function gererDebutDrag(event) {
     const carteBanc = event.target.closest('.bench-player-card');
     if (carteBanc) {
@@ -299,7 +279,6 @@ function gererDebutDrag(event) {
     }
 }
 
-// Affiche visuellement les zones de drop autorisées.
 function gererSurvolDrag(event) {
     const caseTerrain = event.target.closest('.slot');
     if (caseTerrain) {
@@ -318,7 +297,6 @@ function gererSurvolDrag(event) {
     }
 }
 
-// Nettoie l'effet visuel quand la souris sort d'une zone.
 function gererSortieDrag(event) {
     const caseTerrain = event.target.closest('.slot');
     if (caseTerrain && !caseTerrain.contains(event.relatedTarget)) {
@@ -332,7 +310,6 @@ function gererSortieDrag(event) {
     }
 }
 
-// Finalise le drop soit sur le terrain, soit dans le banc.
 async function gererDepot(event) {
     const caseTerrain = event.target.closest('.slot');
     if (caseTerrain) {
@@ -362,12 +339,10 @@ async function gererDepot(event) {
     }
 }
 
-// Appelé en fin de drag pour nettoyer l'interface.
 function gererFinDrag() {
     reinitialiserDrag();
 }
 
-// Recharge équipe + cartes puis redessine le terrain et le banc.
 async function chargerComposition(options = {}) {
     const { silent = false } = options;
 
@@ -404,7 +379,6 @@ async function chargerComposition(options = {}) {
     }
 }
 
-// Lance le rafraîchissement automatique de la composition.
 function demarrerRafraichissementComposition() {
     if (timerComposition) clearInterval(timerComposition);
 
@@ -419,7 +393,6 @@ function demarrerRafraichissementComposition() {
     });
 }
 
-// Injecte les petits styles nécessaires au drag & drop.
 (function injecterStylesComposition() {
     const style = document.createElement('style');
     style.textContent = `

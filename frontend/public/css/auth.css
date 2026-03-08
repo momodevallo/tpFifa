@@ -93,7 +93,6 @@ button#submit:active {
     box-shadow: 0 3px 8px rgba(0, 0, 0, 0.8);
 }
 
-/* Lien inscription */
 form#login a {
     margin-top: 4px;
     font-size: 0.85rem;

@@ -1,12 +1,10 @@
 const MAX_TENTATIVES_PACK = 30;
 const DELAI_VERIFICATION_PACK_MS = 1000;
 
-// Petite pause pour laisser jouer l'animation.
 function attendre(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-// Image locale de secours si une photo de joueur ne charge pas.
 function creerImageJoueurParDefaut() {
     return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
         <svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240">
@@ -24,14 +22,12 @@ function creerImageJoueurParDefaut() {
     `)}`;
 }
 
-// Donne la meilleure URL d'image possible pour un joueur.
 function donnerImageJoueur(joueur) {
     if (!joueur) return '';
     if (joueur.id) return `/player-image/${joueur.id}`;
     return joueur.imageUrl || '';
 }
 
-// Détecte si la réponse est du JSON, du HTML ou une redirection de session.
 function determinerTypeReponse(reponse) {
     const typeContenu = (reponse.headers.get('content-type') || '').toLowerCase();
     if (reponse.status === 401 || reponse.status === 403) return 'non-auth';
@@ -41,7 +37,6 @@ function determinerTypeReponse(reponse) {
     return 'autre';
 }
 
-// Fait un appel fetch en gérant la session et les erreurs serveur.
 async function recupererJsonSecurise(url, options = {}) {
     const reponse = await fetch(url, { credentials: 'same-origin', ...options });
     const typeReponse = determinerTypeReponse(reponse);
@@ -60,7 +55,6 @@ async function recupererJsonSecurise(url, options = {}) {
     return data;
 }
 
-// Bloque tous les boutons d'achat pendant l'ouverture d'un pack.
 function bloquerBoutonsAchat(estBloque) {
     document.querySelectorAll('.btn-buy').forEach((bouton) => {
         bouton.disabled = estBloque;
@@ -68,7 +62,6 @@ function bloquerBoutonsAchat(estBloque) {
     });
 }
 
-// Met à jour la zone d'expérience visuelle de la boutique.
 function changerEtatExperience(classeEtat, titre, texte = '') {
     const section = document.getElementById('packExperience');
     const zonePack = document.getElementById('packStage');
@@ -81,7 +74,6 @@ function changerEtatExperience(classeEtat, titre, texte = '') {
     texteNode.textContent = texte;
 }
 
-// Construit l'HTML d'une carte révélée après ouverture du pack.
 function genererCarteReveal(carte) {
     const joueur = carte?.joueur || {};
     return `
@@ -103,7 +95,6 @@ function genererCarteReveal(carte) {
     `;
 }
 
-// Recharge le compteur de crédits du header.
 async function rafraichirCredits() {
     const data = await recupererJsonSecurise('/api/moi/credits');
     if (!data) return;
@@ -112,7 +103,6 @@ async function rafraichirCredits() {
     if (zoneArgent) zoneArgent.textContent = data.credits;
 }
 
-// Associe les packs de la base aux boutons bronze / silver / gold.
 async function chargerCorrespondancePacks() {
     const packs = await recupererJsonSecurise('/api/packs');
     const correspondance = {};
@@ -132,7 +122,6 @@ async function chargerCorrespondancePacks() {
     return correspondance;
 }
 
-// Attend que le backend termine réellement l'ouverture du pack.
 async function attendrePackPret(uuid) {
     for (let tentative = 0; tentative < MAX_TENTATIVES_PACK; tentative++) {
         const resultat = await recupererJsonSecurise(`/api/packs/${uuid}`);
@@ -149,7 +138,6 @@ async function attendrePackPret(uuid) {
     throw new Error('Le pack met trop de temps à arriver');
 }
 
-// Joue les étapes visuelles avant d'afficher les joueurs gagnés.
 async function jouerAnimationPack(nomPack) {
     const grille = document.getElementById('packRevealGrid');
     grille.innerHTML = '';

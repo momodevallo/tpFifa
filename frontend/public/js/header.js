@@ -5,8 +5,7 @@
 
     if (!zoneHeader) return;
 
-    // Injecte les styles minimums du header si la page n'en a pas encore.
-    if (!document.getElementById('tp-header-styles')) {
+        if (!document.getElementById('tp-header-styles')) {
         const style = document.createElement('style');
         style.id = 'tp-header-styles';
         style.textContent = `
@@ -66,7 +65,6 @@
     const boutonActif = document.querySelector(`.main-nav .nav-btn[data-page="${pageActive}"]`);
     if (boutonActif) boutonActif.classList.add('active');
 
-    // Devine le type de réponse reçu pour savoir si on peut lire du JSON.
     function determinerTypeReponse(reponse) {
         const typeContenu = (reponse.headers.get('content-type') || '').toLowerCase();
         if (reponse.status === 401 || reponse.status === 403) return 'non-auth';
@@ -76,7 +74,6 @@
         return 'autre';
     }
 
-    // Fait un fetch JSON et redirige vers login si la session a expiré.
     async function recupererJsonSecurise(url, options = {}) {
         const reponse = await fetch(url, { credentials: 'same-origin', ...options });
         const typeReponse = determinerTypeReponse(reponse);
@@ -104,7 +101,6 @@
         return reponse.json();
     }
 
-    // Charge le pseudo et le nombre de crédits affichés dans le header.
     async function chargerInfosUtilisateur() {
         try {
             const [utilisateur, credits] = await Promise.all([
@@ -122,7 +118,6 @@
         }
     }
 
-    // Met à jour automatiquement le header tant que la page reste ouverte.
     function demarrerRafraichissementHeader() {
         if (timerHeader) clearInterval(timerHeader);
 

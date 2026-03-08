@@ -6,7 +6,6 @@ let timerMarche = null;
 let requeteMarcheEnCours = false;
 const DELAI_RAFRAICHISSEMENT_MARCHE = 2000;
 
-// Image locale utilisée quand une vraie photo ne répond pas.
 function creerImageJoueurParDefaut() {
     return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
         <svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240">
@@ -24,14 +23,12 @@ function creerImageJoueurParDefaut() {
     `)}`;
 }
 
-// Donne le meilleur chemin d'image pour un joueur.
 function donnerImageJoueur(joueur) {
     if (!joueur) return '';
     if (joueur.id) return `/player-image/${joueur.id}`;
     return joueur.imageUrl || '';
 }
 
-// Affiche les annonces du marché selon les filtres actuels.
 function afficherAnnoncesMarche() {
     const liste = document.querySelector('.players-list');
 
@@ -75,7 +72,6 @@ function afficherAnnoncesMarche() {
     }).join('');
 }
 
-// Charge les annonces du marché et les infos utilisateur.
 async function chargerAnnoncesMarche(options = {}) {
     const { silent = false } = options;
 
@@ -109,7 +105,6 @@ async function chargerAnnoncesMarche(options = {}) {
     }
 }
 
-// Met à jour régulièrement le marché sans recharger la page.
 function demarrerRafraichissementMarche() {
     if (timerMarche) clearInterval(timerMarche);
 
@@ -124,7 +119,6 @@ function demarrerRafraichissementMarche() {
     });
 }
 
-// Achète une annonce du marché après confirmation.
 async function acheterAnnonce(idAnnonce, prix) {
     if (!confirm(`Acheter pour ${prix} crédits ?`)) return;
 
@@ -154,7 +148,6 @@ async function acheterAnnonce(idAnnonce, prix) {
     } catch (_erreurCredits) {}
 }
 
-// Retire une annonce appartenant au joueur connecté.
 async function retirerAnnonce(idAnnonce) {
     if (!confirm('Retirer cette annonce du marché ?')) return;
 

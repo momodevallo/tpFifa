@@ -1,7 +1,6 @@
 import 'dotenv/config';
 import mysql from 'mysql2/promise';
 
-// Crée un pool MySQL partagé pour tout le backend.
 const pool = mysql.createPool({
   host: process.env.DB_HOST,
   port: Number(process.env.DB_PORT || 3306),

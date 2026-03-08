@@ -1,4 +1,3 @@
-/* RESET & BASE */
 * {
     margin: 0;
     padding: 0;
@@ -12,7 +11,6 @@ body {
     color: white;
 }
 
-/* HEADER */
 header {
     display: flex;
     justify-content: space-between;
@@ -70,7 +68,6 @@ header {
     transform: scale(1.05);
 }
 
-/* NAV */
 .main-nav {
     display: flex;
     justify-content: center;
@@ -108,7 +105,6 @@ header {
     background: #229954;
 }
 
-/* MAIN / COMPOSITION */
 main {
     padding: 2rem;
 }
@@ -121,7 +117,6 @@ main {
     gap: 2rem;
 }
 
-/* TERRAIN COMPOSITION */
 .terrain-compo {
     width: 100%;
     height: 500px;
@@ -139,14 +134,12 @@ main {
     gap: 2rem;
 }
 
-/* Lignes du terrain */
 .terrain-compo .ligne {
     display: flex;
     justify-content: center;
     gap: 2rem;
 }
 
-/* Slot de joueur (future zone de drop) */
 .slot {
     width: 90px;
     height: 90px;
@@ -169,7 +162,6 @@ main {
     transform: scale(1.05);
 }
 
-/* BANDE TOUS LES JOUEURS EN BAS */
 .bench {
     background: rgba(0, 0, 0, 0.3);
     border-radius: 15px;
@@ -188,7 +180,6 @@ main {
     gap: 1rem;
 }
 
-/* Carte joueur sur le banc (drag later) */
 .bench-player-card {
     position: relative;
     width: 120px;
@@ -241,7 +232,6 @@ main {
     opacity: 0.8;
 }
 
-/* Responsive */
 @media (max-width: 768px) {
     .terrain-compo {
         height: 320px;

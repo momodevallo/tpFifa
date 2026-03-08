@@ -1,4 +1,3 @@
-// Image locale de secours si la photo d'un joueur est absente.
 function creerImageJoueurParDefaut() {
     return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
         <svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240">
@@ -16,14 +15,12 @@ function creerImageJoueurParDefaut() {
     `)}`;
 }
 
-// Donne la bonne URL d'image pour un joueur.
 function donnerImageJoueur(joueur) {
     if (!joueur) return '';
     if (joueur.id) return `/player-image/${joueur.id}`;
     return joueur.imageUrl || '';
 }
 
-// Génére l'affichage HTML d'une carte joueur sur le terrain.
 function genererCarteJoueur(carte) {
     return `
         <div class="joueur">

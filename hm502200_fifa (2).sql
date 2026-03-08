@@ -1,31 +1,12 @@
--- phpMyAdmin SQL Dump
--- version 5.2.1
--- https://www.phpmyadmin.net/
---
--- Hôte : 127.0.0.1:3306
--- Généré le : ven. 06 mars 2026 à 21:59
--- Version du serveur : 9.1.0
--- Version de PHP : 8.3.14
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
 SET time_zone = "+00:00";
 
 
-/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
-/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
-/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
-/*!40101 SET NAMES utf8mb4 */;
 
---
--- Base de données : `hm502200_fifa`
---
 
--- --------------------------------------------------------
 
---
--- Structure de la table `annonces_marche`
---
 
 DROP TABLE IF EXISTS `annonces_marche`;
 CREATE TABLE IF NOT EXISTS `annonces_marche` (
@@ -38,11 +19,7 @@ CREATE TABLE IF NOT EXISTS `annonces_marche` (
   KEY `vendeur_id` (`vendeur_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- --------------------------------------------------------
 
---
--- Structure de la table `cartes`
---
 
 DROP TABLE IF EXISTS `cartes`;
 CREATE TABLE IF NOT EXISTS `cartes` (
@@ -55,11 +32,7 @@ CREATE TABLE IF NOT EXISTS `cartes` (
   KEY `joueur_id` (`joueur_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- --------------------------------------------------------
 
---
--- Structure de la table `equipes`
---
 
 DROP TABLE IF EXISTS `equipes`;
 CREATE TABLE IF NOT EXISTS `equipes` (
@@ -68,11 +41,7 @@ CREATE TABLE IF NOT EXISTS `equipes` (
   PRIMARY KEY (`utilisateur_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- --------------------------------------------------------
 
---
--- Structure de la table `equipes_cartes`
---
 
 DROP TABLE IF EXISTS `equipes_cartes`;
 CREATE TABLE IF NOT EXISTS `equipes_cartes` (
@@ -84,11 +53,7 @@ CREATE TABLE IF NOT EXISTS `equipes_cartes` (
   KEY `poste` (`poste`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- --------------------------------------------------------
 
---
--- Structure de la table `joueurs`
---
 
 DROP TABLE IF EXISTS `joueurs`;
 CREATE TABLE IF NOT EXISTS `joueurs` (
@@ -106,9 +71,6 @@ CREATE TABLE IF NOT EXISTS `joueurs` (
   KEY `poste` (`poste`)
 ) ENGINE=InnoDB AUTO_INCREMENT=18411 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
---
--- Déchargement des données de la table `joueurs`
---
 
 INSERT INTO `joueurs` (`id`, `nom`, `poste`, `note`, `qualite`, `image_url`, `nationalite`, `club`) VALUES
 (6, 'Jude Victor William Bellingham', 'MIL', 90, 'or', 'https://cdn.sofifa.net/players/252/371/26_120.png', 'England', 'Real Madrid'),
@@ -18566,11 +18528,7 @@ INSERT INTO `joueurs` (`id`, `nom`, `poste`, `note`, `qualite`, `image_url`, `na
 (18409, 'Dipesh Chauhan', 'GB', 51, 'bronze', 'https://cdn.sofifa.net/players/278/149/26_120.png', 'India', 'NorthEast United'),
 (18410, 'Haochen Peng', 'GB', 49, 'bronze', 'https://cdn.sofifa.net/players/079/985/26_120.png', 'China PR', 'Chengdu Rongcheng');
 
--- --------------------------------------------------------
 
---
--- Structure de la table `portefeuilles`
---
 
 DROP TABLE IF EXISTS `portefeuilles`;
 CREATE TABLE IF NOT EXISTS `portefeuilles` (
@@ -18579,11 +18537,7 @@ CREATE TABLE IF NOT EXISTS `portefeuilles` (
   PRIMARY KEY (`utilisateur_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- --------------------------------------------------------
 
---
--- Structure de la table `types_packs`
---
 
 DROP TABLE IF EXISTS `types_packs`;
 CREATE TABLE IF NOT EXISTS `types_packs` (
@@ -18598,20 +18552,13 @@ CREATE TABLE IF NOT EXISTS `types_packs` (
   UNIQUE KEY `nom` (`nom`)
 ) ENGINE=MyISAM AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
---
--- Déchargement des données de la table `types_packs`
---
 
 INSERT INTO `types_packs` (`id`, `nom`, `prix`, `nb_cartes`, `pct_bronze`, `pct_argent`, `pct_or`) VALUES
 (1, 'Pack Bronze', 100, 3, 80, 20, 0),
 (2, 'Pack Argent', 300, 3, 20, 70, 10),
 (3, 'Pack Or', 600, 3, 0, 25, 75);
 
--- --------------------------------------------------------
 
---
--- Structure de la table `utilisateurs`
---
 
 DROP TABLE IF EXISTS `utilisateurs`;
 CREATE TABLE IF NOT EXISTS `utilisateurs` (
@@ -18622,51 +18569,27 @@ CREATE TABLE IF NOT EXISTS `utilisateurs` (
   UNIQUE KEY `pseudo` (`pseudo`)
 ) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Déchargement des données de la table `utilisateurs`
---
 
 INSERT INTO `utilisateurs` (`id`, `pseudo`, `mdp`) VALUES
 (2, 'momodevallo', '$2b$10$Q1xQKqTsRBVMVrk1631QZOQKF7F.hIyO5I9c2hem6nodjIeoLTyve');
 
---
--- Contraintes pour les tables déchargées
---
 
---
--- Contraintes pour la table `annonces_marche`
---
 ALTER TABLE `annonces_marche`
   ADD CONSTRAINT `fk_annonce_carte` FOREIGN KEY (`carte_id`) REFERENCES `cartes` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `fk_annonce_vendeur` FOREIGN KEY (`vendeur_id`) REFERENCES `utilisateurs` (`id`) ON DELETE CASCADE;
 
---
--- Contraintes pour la table `cartes`
---
 ALTER TABLE `cartes`
   ADD CONSTRAINT `fk_carte_joueur` FOREIGN KEY (`joueur_id`) REFERENCES `joueurs` (`id`),
   ADD CONSTRAINT `fk_carte_user` FOREIGN KEY (`utilisateur_id`) REFERENCES `utilisateurs` (`id`) ON DELETE SET NULL;
 
---
--- Contraintes pour la table `equipes`
---
 ALTER TABLE `equipes`
   ADD CONSTRAINT `fk_equipe_user` FOREIGN KEY (`utilisateur_id`) REFERENCES `utilisateurs` (`id`) ON DELETE CASCADE;
 
---
--- Contraintes pour la table `equipes_cartes`
---
 ALTER TABLE `equipes_cartes`
   ADD CONSTRAINT `fk_ec_carte` FOREIGN KEY (`carte_id`) REFERENCES `cartes` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `fk_ec_user` FOREIGN KEY (`utilisateur_id`) REFERENCES `utilisateurs` (`id`) ON DELETE CASCADE;
 
---
--- Contraintes pour la table `portefeuilles`
---
 ALTER TABLE `portefeuilles`
   ADD CONSTRAINT `fk_portefeuille_user` FOREIGN KEY (`utilisateur_id`) REFERENCES `utilisateurs` (`id`) ON DELETE CASCADE;
 COMMIT;
 
-/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
-/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
-/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;

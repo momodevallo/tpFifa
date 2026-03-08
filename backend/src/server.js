@@ -20,7 +20,6 @@ const imageCachePath = path.join(__dirname, '..', 'cache', 'player-images');
 
 const sessions = new Map();
 const packJobs = new Map();
-// TEAM_LIMITS limite le nombre de joueurs par poste dans la composition.
 
 const TEAM_LIMITS = { GB: 1, DEF: 4, MIL: 4, ATT: 2 };
 const INITIAL_CREDITS = 5000;
@@ -28,7 +27,6 @@ const REGEN_CREDITS = 5000;
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-// Middleware maison pour lire la session à partir du cookie sid.
 app.use(async (req, _res, next) => {
   req.cookies = await lireCookies(req.headers.cookie || '');
   const sid = req.cookies.sid;
@@ -150,7 +148,6 @@ app.get('/health', async (_req, res) => {
   }
 });
 
-// Sert une image de joueur mise en cache localement si possible.
 app.get('/player-image/:id', async (req, res) => {
   try {
     const playerId = Number(req.params.id);
@@ -188,7 +185,6 @@ app.get('/api/moi', async (req, res) => {
   res.json({ id: req.session.id, pseudo: req.session.pseudo });
 });
 
-// Retourne le nombre de crédits du joueur connecté.
 app.get('/api/moi/credits', async (req, res) => {
   try {
     const wallet = await recupererOuCreerPortefeuille(req.session.id);
@@ -199,7 +195,6 @@ app.get('/api/moi/credits', async (req, res) => {
   }
 });
 
-// Ajoute les crédits bonus au portefeuille du joueur.
 app.post('/api/moi/credits/regenerer', async (req, res) => {
   try {
     await pool.query(
@@ -214,7 +209,6 @@ app.post('/api/moi/credits/regenerer', async (req, res) => {
   }
 });
 
-// ca va retourner les cartes du joueurs
 app.get('/api/moi/cartes', async (req, res) => {
   try {
     const cards = await recupererCartesUtilisateur(req.session.id);
@@ -224,7 +218,6 @@ app.get('/api/moi/cartes', async (req, res) => {
   }
 });
 
-// Retourne l'équipe courante du joueur connecté
 app.get('/api/moi/equipe', async (req, res) => {
   try {
     const team = await recupererEquipe(req.session.id);
@@ -300,7 +293,6 @@ app.delete('/api/moi/equipe/cartes/:carteId', async (req, res) => {
   }
 });
 
-// Liste les packs disponibles dans la boutique.
 app.get('/api/packs', async (_req, res) => {
   try {
     const [rows] = await pool.query('SELECT * FROM types_packs ORDER BY prix ASC');
@@ -350,7 +342,6 @@ app.get('/api/packs/:uuid', async (req, res) => {
   res.json(job);
 });
 
-// Retourne les annonces présentes sur le marché.
 app.get('/api/marketplace', async (req, res) => {
   try {
     const [rows] = await pool.query(
@@ -432,7 +423,6 @@ app.delete('/api/marketplace/annonces/:id', async (req, res) => {
   }
 });
 
-// Permet d'acheter une annonce marché en transaction SQL.
 app.post('/api/marketplace/annonces/:id/acheter', async (req, res) => {
   try {
     const annonceId = Number(req.params.id);
@@ -487,13 +477,11 @@ app.use((req, res) => {
   res.status(404).json({ message: 'Route introuvable' });
 });
 
-// Lance le serveur Express sur le port configuré.
 app.listen(PORT, () => {
   console.log(`Serveur Node lancé sur http://localhost:${PORT}`);
 });
 
 
-// Télécharge puis met en cache local l'image d'un joueur.
 async function recupererImageJoueurCachee(playerId, imageUrl) {
   try {
     await fs.mkdir(imageCachePath, { recursive: true });
@@ -537,7 +525,6 @@ async function recupererImageJoueurCachee(playerId, imageUrl) {
   }
 }
 
-// Déduit l'extension probable d'une image à partir de son URL.
 async function trouverExtensionImage(imageUrl) {
   const cleanUrl = String(imageUrl || '').split('?')[0].toLowerCase();
   if (cleanUrl.endsWith('.jpg') || cleanUrl.endsWith('.jpeg')) return 'jpg';
@@ -547,7 +534,6 @@ async function trouverExtensionImage(imageUrl) {
   return 'png';
 }
 
-// Retourne le content-type adapté à une extension d'image.
 async function trouverContentTypeDepuisExtension(extension) {
   switch (extension) {
     case 'jpg':
@@ -564,7 +550,6 @@ async function trouverContentTypeDepuisExtension(extension) {
   }
 }
 
-// Envoie un avatar SVG par défaut quand aucune image n'est dispo.
 async function envoyerImageJoueurParDefaut(res) {
   const svg = `
     <svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240">
@@ -583,7 +568,6 @@ async function envoyerImageJoueurParDefaut(res) {
   res.status(200).type('image/svg+xml').send(svg);
 }
 
-// Transforme l'en-tête Cookie en objet JavaScript simple.
 async function lireCookies(cookieHeader) {
   return cookieHeader.split(';').reduce((acc, part) => {
     const [rawKey, ...rest] = part.trim().split('=');
@@ -593,31 +577,26 @@ async function lireCookies(cookieHeader) {
   }, {});
 }
 
-// Détermine si le client attend une réponse JSON.
 async function attendJson(req) {
   const accept = String(req.headers.accept || '').toLowerCase();
   const contentType = String(req.headers['content-type'] || '').toLowerCase();
   return accept.includes('application/json') || contentType.includes('application/json');
 }
 
-// Crée une session en mémoire pour l'utilisateur connecté.
 async function creerSession(user) {
   const sid = crypto.randomUUID();
   sessions.set(sid, { ...user, createdAt: Date.now() });
   return sid;
 }
 
-// Pose le cookie HTTP qui identifie la session.
 async function poserCookieSession(res, sid) {
   res.setHeader('Set-Cookie', `sid=${encodeURIComponent(sid)}; HttpOnly; Path=/; SameSite=Lax; Max-Age=${7 * 24 * 60 * 60}`);
 }
 
-// Supprime le cookie de session côté navigateur.
 async function supprimerCookieSession(res) {
   res.setHeader('Set-Cookie', 'sid=; HttpOnly; Path=/; SameSite=Lax; Max-Age=0');
 }
 
-// Centralise la réponse envoyée lors d'un échec d'authentification.
 async function gererEchecAuth(req, res, message) {
   if (await attendJson(req)) {
     return res.status(400).json({ message });
@@ -625,7 +604,6 @@ async function gererEchecAuth(req, res, message) {
   return res.redirect('/login?error');
 }
 
-// Exécute un bloc SQL dans une transaction atomique.
 async function avecTransaction(work) {
   const conn = await pool.getConnection();
   try {
@@ -641,13 +619,11 @@ async function avecTransaction(work) {
   }
 }
 
-// Cherche un utilisateur à partir de son pseudo.
 async function trouverUtilisateurParPseudo(pseudo) {
   const [rows] = await pool.query('SELECT id, pseudo, mdp FROM utilisateurs WHERE pseudo = ?', [pseudo]);
   return rows[0] || null;
 }
 
-// Retourne le portefeuille d'un joueur, ou le crée si besoin.
 async function recupererOuCreerPortefeuille(userId) {
   const [rows] = await pool.query('SELECT utilisateur_id, credits FROM portefeuilles WHERE utilisateur_id = ?', [userId]);
   if (rows[0]) return rows[0];
@@ -655,7 +631,6 @@ async function recupererOuCreerPortefeuille(userId) {
   return { utilisateur_id: userId, credits: INITIAL_CREDITS };
 }
 
-// Crée automatiquement l'équipe de départ d'un nouveau compte.
 async function creerEquipeDepart(conn, userId) {
   const starterPlan = [
     ['GB', 1],
@@ -690,7 +665,6 @@ async function creerEquipeDepart(conn, userId) {
   }
 }
 
-// Convertit une ligne SQL carte en objet pratique pour le front.
 async function transformerLigneCartePourVue(row) {
   return {
     id: Number(row.carte_id),
@@ -709,7 +683,6 @@ async function transformerLigneCartePourVue(row) {
   };
 }
 
-// Convertit une ligne SQL annonce en objet lisible côté front.
 async function transformerLigneAnnoncePourVue(row) {
   return {
     id: Number(row.annonce_id),
@@ -720,7 +693,6 @@ async function transformerLigneAnnoncePourVue(row) {
   };
 }
 
-// Récupère toutes les cartes possédées par un joueur.
 async function recupererCartesUtilisateur(userId) {
   const [rows] = await pool.query(
     `SELECT c.id AS carte_id, c.utilisateur_id, c.joueur_id, c.non_echangeable,
@@ -736,7 +708,6 @@ async function recupererCartesUtilisateur(userId) {
   return Promise.all(rows.map((row) => transformerLigneCartePourVue(row)));
 }
 
-// Récupère l'équipe complète structurée par lignes.
 async function recupererEquipe(userId) {
   const [teamRows] = await pool.query('SELECT formation FROM equipes WHERE utilisateur_id = ?', [userId]);
   const formation = teamRows[0]?.formation || '4-4-2';
@@ -768,7 +739,6 @@ async function tirerQualite(pack) {
   return 'or';
 }
 
-// Ouvre un pack, retire les crédits puis crée les cartes gagnées.
 async function ouvrirPack(userId, packId) {
   return avecTransaction(async (conn) => {
     const [packRows] = await conn.query('SELECT * FROM types_packs WHERE id = ?', [packId]);

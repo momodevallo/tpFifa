@@ -5,7 +5,6 @@ let timerMesJoueurs = null;
 let requeteMesJoueursEnCours = false;
 const DELAI_RAFRAICHISSEMENT_MES_JOUEURS = 4000;
 
-// Image locale de secours quand un portrait joueur manque.
 function creerImageJoueurParDefaut() {
     return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
         <svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240">
@@ -23,14 +22,12 @@ function creerImageJoueurParDefaut() {
     `)}`;
 }
 
-// Retourne l'image à afficher pour le joueur.
 function donnerImageJoueur(joueur) {
     if (!joueur) return '';
     if (joueur.id) return `/player-image/${joueur.id}`;
     return joueur.imageUrl || '';
 }
 
-// Affiche les cartes possédées avec filtres recherche + poste.
 function afficherCartes() {
     const cartesFiltrees = toutesLesCartes.filter((carte) => {
         const okRecherche = !rechercheCourante || carte.joueur.nom.toLowerCase().includes(rechercheCourante);
@@ -63,7 +60,6 @@ function afficherCartes() {
     `).join('');
 }
 
-// Charge les cartes de l'utilisateur et son solde.
 async function chargerMesCartes(options = {}) {
     const { silent = false } = options;
 
@@ -97,7 +93,6 @@ async function chargerMesCartes(options = {}) {
     }
 }
 
-// Lance le rafraîchissement auto de la page "Mes joueurs".
 function demarrerRafraichissementMesCartes() {
     if (timerMesJoueurs) clearInterval(timerMesJoueurs);
 
@@ -112,7 +107,6 @@ function demarrerRafraichissementMesCartes() {
     });
 }
 
-// Envoie une carte vers le marché avec le prix choisi par l'utilisateur.
 async function mettreCarteEnVente(idCarte) {
     const prix = prompt('Prix de vente ?');
     if (!prix || Number(prix) <= 0) return;
