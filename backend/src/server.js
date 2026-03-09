@@ -712,8 +712,7 @@ async function recupererEquipe(userId) {
   const [teamRows] = await pool.query('SELECT formation FROM equipes WHERE utilisateur_id = ?', [userId]);
   const formation = teamRows[0]?.formation || '4-4-2';
   const [rows] = await pool.query(
-    `SELECT c.id AS carte_id, c.joueur_id, c.non_echangeable, 1 AS en_equipe,
-            j.nom, j.poste, j.qualite, j.note, j.image_url, j.nationalite, j.club
+    `SELECT c.id AS carte_id, c.joueur_id, c.non_echangeable, 1 AS en_equipe,j.nom, j.poste, j.qualite, j.note, j.image_url, j.nationalite, j.club
      FROM equipes_cartes ec
      JOIN cartes c ON c.id = ec.carte_id
      JOIN joueurs j ON j.id = c.joueur_id

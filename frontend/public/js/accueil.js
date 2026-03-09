@@ -38,12 +38,10 @@ function genererCarteJoueur(carte) {
 const DELAI_RAFRAICHISSEMENT_EQUIPE = 4000;
 let timerEquipe = null;
 
-// Génére une ligne du terrain (attaque, milieu, défense, gardien).
 function genererLigne(classeLigne, cartes) {
     return `<div class="ligne ${classeLigne}">${cartes.map(genererCarteJoueur).join('')}</div>`;
 }
 
-// Charge l'équipe du joueur et l'affiche sur le terrain.
 async function chargerEquipe() {
     const terrain = document.querySelector('.terrain');
     if (!terrain) return;
@@ -85,7 +83,6 @@ async function chargerEquipe() {
     }
 }
 
-// Lance le rafraîchissement automatique de la page d'accueil.
 function demarrerRafraichissementEquipe() {
     if (timerEquipe) clearInterval(timerEquipe);
 
